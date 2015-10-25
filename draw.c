@@ -1,4 +1,6 @@
-/* All rights reserved.
+/* Copyright 2015. Martin Uecker.
+ * All rights reserved. Use of this source code is governed by
+ * a BSD-style license which can be found in the LICENSE file.
  *
  * Author:
  *	2015 Martin Uecker <martin.uecker@med.uni-goettingen.de>
