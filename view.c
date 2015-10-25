@@ -43,6 +43,7 @@ struct view_s {
 	double xzoom;
 	double yzoom;
 	enum flip_t { OO, XO, OY, XY } flip;
+	bool transpose;
 
 	// representation
 	enum mode_t mode;
@@ -74,6 +75,7 @@ struct view_s {
 	GtkAdjustment* gtk_winhigh;
 	GtkAdjustment* gtk_zoom;
 	GtkEntry* gtk_entry;
+	GtkToggleToolButton* gtk_transpose;
 
 	GtkAdjustment* gtk_posall[DIMS];
 	GtkCheckButton* gtk_checkall[DIMS];
@@ -202,6 +204,26 @@ extern gboolean gui_callback(GtkWidget *widget, gpointer data)
 	v->flip = gtk_combo_box_get_active(v->gtk_flip);
 	v->winlow = gtk_adjustment_get_value(v->gtk_winlow);
 	v->winhigh = gtk_adjustment_get_value(v->gtk_winhigh);
+	v->transpose = gtk_toggle_tool_button_get_active(v->gtk_transpose);
+
+	if (v->transpose) {
+
+		if (v->xdim < v->ydim) {
+
+			int swp = v->xdim;
+			v->xdim = v->ydim;
+			v->ydim = swp;
+		}
+
+	} else {
+
+		if (v->xdim > v->ydim) {
+
+			int swp = v->xdim;
+			v->xdim = v->ydim;
+			v->ydim = swp;
+		}
+	}
 
 	v->lastx = -1;
 	v->lasty = -1;
@@ -454,6 +476,8 @@ static void window_new(const char* name, long* pos, double max, const long dims[
 
 	v->gtk_flip = GTK_COMBO_BOX(gtk_builder_get_object(builder, "flip"));
 	gtk_combo_box_set_active(v->gtk_flip, 0);
+
+	v->gtk_transpose = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "transpose"));
 
 	for (int j = 0; j < DIMS; j++) {
 
