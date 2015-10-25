@@ -32,6 +32,11 @@
 #define DIMS 16
 #endif
 
+#define STRINGIFY(x) # x
+const char* viewer_gui =
+#include "viewer.inc"
+;
+
 struct view_s {
 
 	const char* name;
@@ -453,7 +458,8 @@ static void window_new(const char* name, long* pos, double max, const long dims[
 	struct view_s* v = create_view(name, pos, max, dims, x);
 
 	GtkBuilder* builder = gtk_builder_new();
-	gtk_builder_add_from_file(builder, "viewer.ui", NULL);
+	// gtk_builder_add_from_file(builder, "viewer.ui", NULL);
+	gtk_builder_add_from_string(builder, viewer_gui, -1, NULL);
 
 	v->gtk_drawingarea = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea1"));
 	v->gtk_viewport = GTK_WIDGET(gtk_builder_get_object(builder, "scrolledwindow1"));
