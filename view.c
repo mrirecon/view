@@ -429,7 +429,7 @@ gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer 
 
 extern gboolean show_hide(GtkWidget *widget, GtkCheckButton* button)
 {
-	gboolean flag = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button));
+	gboolean flag = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(button));
 	(flag ? gtk_widget_show : gtk_widget_hide)(widget);
 
 	return FALSE;
