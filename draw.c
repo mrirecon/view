@@ -135,7 +135,7 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 			for (int i = 0; i < N; i++)
 				pos2[i] = pos[i] + x * dx[i] + y * dy[i];
 
-			complex float val = scale * sample(4, pos2, dims, strs, in);
+			complex float val = scale * sample(N, pos2, dims, strs, in);
 
 			val *= cexpf(1.i * phrot);
 

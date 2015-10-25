@@ -248,20 +248,23 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 		for (int i = 0; i < DIMS; i++)
 			dy[i] = 0.;
 
+		dx[v->xdim] = 1.;
+		dy[v->ydim] = 1.;
+
 		if ((XY == v->flip) || (XO == v->flip)) {
 
-			dpos[v->xdim] += dx[v->xdim] * (v->dims[v->xdim] - 1);
+			dpos[v->xdim] = v->dims[v->xdim] - 1;
 			dx[v->xdim] *= -1.;
 		}
 
 		if ((XY == v->flip) || (OY == v->flip)) {
 
-			dpos[v->ydim] += dy[v->ydim] * (v->dims[v->ydim] - 1);
+			dpos[v->ydim] = v->dims[v->ydim] - 1;
 			dy[v->ydim] *= -1.;
 		}
 
-		dx[v->xdim] = 1. / v->xzoom;
-		dy[v->ydim] = 1. / v->yzoom;
+		dx[v->xdim] = dx[v->xdim] / v->xzoom;
+		dy[v->ydim] = dy[v->ydim] / v->yzoom;
 
 		draw(v->rgbh, v->rgbw, v->rgbstr, v->rgb,
 			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
