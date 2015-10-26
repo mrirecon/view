@@ -502,9 +502,12 @@ static void window_new(const char* name, long* pos, double max, const long dims[
 
 	gtk_builder_connect_signals(builder, v);
 
-	GtkWidget* window = GTK_WIDGET(gtk_builder_get_object(builder, "window1"));
+	GtkWindow* window = GTK_WINDOW(gtk_builder_get_object(builder, "window1"));
 	g_object_unref(G_OBJECT(builder));
-	gtk_widget_show(window);
+
+	gtk_window_set_title(window, name);
+
+	gtk_widget_show(GTK_WIDGET(window));
 
 	nr_windows++;
 
