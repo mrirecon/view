@@ -79,6 +79,7 @@ struct view_s {
 	GtkAdjustment* gtk_winlow;
 	GtkAdjustment* gtk_winhigh;
 	GtkAdjustment* gtk_zoom;
+	GtkAdjustment* gtk_aniso;
 	GtkEntry* gtk_entry;
 	GtkToggleToolButton* gtk_transpose;
 
@@ -148,13 +149,16 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 {
 	struct view_s* v = data;
 
+	double aniso = gtk_adjustment_get_value(v->gtk_aniso);
+
 	GtkAllocation alloc;
 	gtk_widget_get_allocation(v->gtk_viewport, &alloc);
 	double xz = (double)(alloc.height - 5) / (double)v->dims[v->xdim];
 	double yz = (double)(alloc.width - 5) / (double)v->dims[v->ydim];
 
-	if (xz > yz)
-		xz = yz;
+
+	if (xz > yz / aniso)
+		xz = yz / aniso; // aniso
 
 	gtk_adjustment_set_value(v->gtk_zoom, xz);
 
@@ -202,8 +206,9 @@ extern gboolean gui_callback(GtkWidget *widget, gpointer data)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[v->ydim]), TRUE);
 
 	double zoom = gtk_adjustment_get_value(v->gtk_zoom);
+	double aniso = gtk_adjustment_get_value(v->gtk_aniso);
 	v->xzoom = zoom;
-	v->yzoom = zoom;
+	v->yzoom = zoom * aniso;
 
 	v->mode = gtk_combo_box_get_active(v->gtk_mode);
 	v->flip = gtk_combo_box_get_active(v->gtk_flip);
@@ -476,6 +481,7 @@ static void window_new(const char* name, long* pos, double max, const long dims[
 	pango_font_description_free(desc);
 
 	v->gtk_zoom = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "zoom"));
+	v->gtk_aniso = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "aniso"));
 
 	v->gtk_mode = GTK_COMBO_BOX(gtk_builder_get_object(builder, "mode"));
 	gtk_combo_box_set_active(v->gtk_mode, 0);
