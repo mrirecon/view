@@ -180,7 +180,7 @@
                     <property name="can_focus">False</property>
                     <property name="model">liststore1</property>
                     <property name="active">0</property>
-                    <signal name="changed" handler="gui_callback" swapped="no"/>
+                    <signal name="changed" handler="window_callback" swapped="no"/>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext1"/>
                       <attributes>
@@ -231,7 +231,7 @@
                     <property name="halign">start</property>
                     <property name="model">liststore2</property>
                     <property name="active">0</property>
-                    <signal name="changed" handler="gui_callback" swapped="no"/>
+                    <signal name="changed" handler="geom_callback" swapped="no"/>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2"/>
                       <attributes>
@@ -253,7 +253,7 @@
                 <property name="label" translatable="yes">transpose</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-page-setup</property>
-                <signal name="toggled" handler="gui_callback" swapped="no"/>
+                <signal name="toggled" handler="geom_callback" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -315,7 +315,7 @@
                     <property name="round_digits">3</property>
                     <property name="digits">3</property>
                     <property name="value_pos">right</property>
-                    <signal name="value-changed" handler="gui_callback" swapped="no"/>
+                    <signal name="value-changed" handler="window_callback" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -342,7 +342,7 @@
                     <property name="round_digits">3</property>
                     <property name="digits">3</property>
                     <property name="value_pos">right</property>
-                    <signal name="value-changed" handler="gui_callback" swapped="no"/>
+                    <signal name="value-changed" handler="window_callback" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -365,7 +365,7 @@
                     <property name="fill_level">10</property>
                     <property name="round_digits">1</property>
                     <property name="value_pos">right</property>
-                    <signal name="value-changed" handler="gui_callback" swapped="no"/>
+                    <signal name="value-changed" handler="geom_callback" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -388,7 +388,7 @@
                     <property name="fill_level">10</property>
                     <property name="round_digits">1</property>
                     <property name="value_pos">right</property>
-                    <signal name="value-changed" handler="gui_callback" swapped="no"/>
+                    <signal name="value-changed" handler="geom_callback" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -510,7 +510,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                             <child>
                               <placeholder/>
                             </child>
@@ -528,7 +528,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos00</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -543,7 +543,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos01</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -558,7 +558,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos02</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -573,7 +573,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos03</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -588,7 +588,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos04</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -603,7 +603,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos05</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -618,7 +618,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos06</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -633,7 +633,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos07</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -648,7 +648,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos08</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -663,7 +663,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos09</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -678,7 +678,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos10</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -693,7 +693,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos11</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -708,7 +708,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos12</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -723,7 +723,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos13</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -738,7 +738,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos14</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -753,7 +753,7 @@
                             <property name="can_focus">True</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">pos15</property>
-                            <signal name="changed" handler="gui_callback" swapped="no"/>
+                            <signal name="changed" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -769,7 +769,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -785,7 +785,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -801,7 +801,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -817,7 +817,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -833,7 +833,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -849,7 +849,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -865,7 +865,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -881,7 +881,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -897,7 +897,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -913,7 +913,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -929,7 +929,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -945,7 +945,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -961,7 +961,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -977,7 +977,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -993,7 +993,7 @@
                             <property name="receives_default">False</property>
                             <property name="xalign">0</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="gui_callback" swapped="no"/>
+                            <signal name="toggled" handler="geom_callback" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>

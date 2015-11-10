@@ -121,10 +121,7 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 }
 
 
-
-
-extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
-	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
+extern void resample(int X, int Y, long str, complex float* buf,
 	int N, const double pos[N], const double dx[N], const double dy[N], 
 	const long dims[N], const long strs[N], const complex float* in)
 {
@@ -135,7 +132,22 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 			for (int i = 0; i < N; i++)
 				pos2[i] = pos[i] + x * dx[i] + y * dy[i];
 
-			complex float val = scale * sample(N, pos2, dims, strs, in);
+			buf[str * y + x] = sample(N, pos2, dims, strs, in);
+		}
+	}
+}
+
+
+
+
+extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
+	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
+	long str, const complex float* buf)
+{
+	for (int x = 0; x < X; x++) {
+		for (int y = 0; y < Y; y++) {
+
+			complex float val = scale * buf[str * y + x];
 
 			val *= cexpf(1.i * phrot);
 

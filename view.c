@@ -57,6 +57,8 @@ struct view_s {
 	double phrot;
 	double max;
 
+	complex float* buf;
+
 	cairo_surface_t* source;
 
 	// rgb buffer
@@ -65,7 +67,8 @@ struct view_s {
 	int rgbstr;
 	unsigned char* rgb;
 	bool invalid;
-	
+	bool rgb_invalid;
+
 	// data	
 	long dims[DIMS];
 	long strs[DIMS];
@@ -133,6 +136,8 @@ extern gboolean update_view(struct view_s* v)
 	v->rgbstr = 4 * v->rgbw;
 	v->rgb = realloc(v->rgb, v->rgbh * v->rgbstr);
 
+	v->buf = realloc(v->buf, v->rgbh * v->rgbw * sizeof(complex float));
+
 	v->source = cairo_image_surface_create_for_data(v->rgb,
                              CAIRO_FORMAT_RGB24, v->rgbw, v->rgbh, v->rgbstr);
 
@@ -165,7 +170,7 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 	return FALSE;
 }
 
-extern gboolean gui_callback(GtkWidget *widget, gpointer data)
+extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 {
 	struct view_s* v = data;
 
@@ -210,10 +215,7 @@ extern gboolean gui_callback(GtkWidget *widget, gpointer data)
 	v->xzoom = zoom;
 	v->yzoom = zoom * aniso;
 
-	v->mode = gtk_combo_box_get_active(v->gtk_mode);
 	v->flip = gtk_combo_box_get_active(v->gtk_flip);
-	v->winlow = gtk_adjustment_get_value(v->gtk_winlow);
-	v->winhigh = gtk_adjustment_get_value(v->gtk_winhigh);
 	v->transpose = gtk_toggle_tool_button_get_active(v->gtk_transpose);
 
 	if (v->transpose) {
@@ -245,6 +247,20 @@ extern gboolean gui_callback(GtkWidget *widget, gpointer data)
 	return FALSE;
 }
 
+extern gboolean window_callback(GtkWidget *widget, gpointer data)
+{
+	struct view_s* v = data;
+
+	v->mode = gtk_combo_box_get_active(v->gtk_mode);
+	v->winlow = gtk_adjustment_get_value(v->gtk_winlow);
+	v->winhigh = gtk_adjustment_get_value(v->gtk_winhigh);
+
+	v->rgb_invalid = true;
+
+	update_view(v);
+
+	return FALSE;
+}
 
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
@@ -298,12 +314,23 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 		dx[v->xdim] = dx[v->xdim] / v->xzoom;
 		dy[v->ydim] = dy[v->ydim] / v->yzoom;
 
+		resample(v->rgbh, v->rgbw, v->rgbh, v->buf,
+			DIMS, dpos, dx, dy, v->dims, v->strs, v->data);
+
+		v->invalid = false;
+		v->rgb_invalid = true;
+	}
+
+	if (v->rgb_invalid) {
+
 		draw(v->rgbh, v->rgbw, v->rgbstr, v->rgb,
 			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
-			DIMS, dpos, dx, dy, v->dims, v->strs, v->data);
-	
-		v->invalid = false;
+			v->rgbh, v->buf);
+
+
+		v->rgb_invalid = false;
 	}
+
 
 	// add_text(v->source, 3, 3, 10, v->name);
 
@@ -344,6 +371,7 @@ struct view_s* create_view(const char* name, long* pos, double max, const long d
 
 	v->source = NULL;
 	v->rgb = NULL;
+	v->buf = NULL;
 
 
 	md_copy_dims(DIMS, v->dims, dims);
@@ -517,7 +545,8 @@ static void window_new(const char* name, long* pos, double max, const long dims[
 
 	nr_windows++;
 
-	gui_callback(NULL, v);
+	geom_callback(NULL, v);
+	window_callback(NULL, v);
 }
 
 extern gboolean window_clone(GtkWidget *widget, gpointer data)
