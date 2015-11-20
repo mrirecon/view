@@ -170,6 +170,30 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 	return FALSE;
 }
 
+
+extern gboolean refresh_callback(GtkWidget *widget, gpointer data)
+{
+	struct view_s* v = data;
+
+	v->invalid = true;
+
+	long size = md_calc_size(DIMS, v->dims);
+	double max = 0.;
+	for (long j = 0; j < size; j++)
+		if (max < cabsf(v->data[j]))
+			max = cabsf(v->data[j]);
+
+	if (0. == max)
+		max = 1.;
+
+	v->max = max;
+
+	update_view(v);
+
+	return FALSE;
+}
+
+
 extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 {
 	struct view_s* v = data;
@@ -342,7 +366,7 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 
 
-struct view_s* create_view(const char* name, long* pos, double max, const long dims[DIMS], const complex float* data)
+struct view_s* create_view(const char* name, long* pos, const long dims[DIMS], const complex float* data)
 {
 	long sq_dims[2] = { 0 };
 
@@ -358,7 +382,7 @@ struct view_s* create_view(const char* name, long* pos, double max, const long d
 
 	v->name = name;
 	v->pos = pos;
-	v->max = max;
+	v->max = 1.;
 
 	if (NULL == v->pos)
 		v->pos = xmalloc(DIMS * sizeof(long));
@@ -486,9 +510,9 @@ extern gboolean window_close(GtkWidget *widget, gpointer data)
 
 
 
-static void window_new(const char* name, long* pos, double max, const long dims[DIMS], const complex float* x)
+static void window_new(const char* name, long* pos, const long dims[DIMS], const complex float* x)
 {
-	struct view_s* v = create_view(name, pos, max, dims, x);
+	struct view_s* v = create_view(name, pos, dims, x);
 
 	GtkBuilder* builder = gtk_builder_new();
 	// gtk_builder_add_from_file(builder, "viewer.ui", NULL);
@@ -545,6 +569,7 @@ static void window_new(const char* name, long* pos, double max, const long dims[
 
 	nr_windows++;
 
+	refresh_callback(NULL, v);
 	geom_callback(NULL, v);
 	window_callback(NULL, v);
 }
@@ -553,7 +578,7 @@ extern gboolean window_clone(GtkWidget *widget, gpointer data)
 {
 	struct view_s* v = data;
 
-	window_new(v->name, v->pos, v->max, v->dims, v->data);
+	window_new(v->name, v->pos, v->dims, v->data);
 
 	return FALSE;
 }
@@ -581,18 +606,9 @@ int main(int argc, char* argv[])
 
 		long dims[DIMS];
 		complex float* x = load_cfl(argv[i], DIMS, dims);
-
-		long size = md_calc_size(DIMS, dims);
-		double max = 0.;
-		for (long j = 0; j < size; j++)
-			if (max < cabsf(x[j]))
-				max = cabsf(x[j]);
-
-		if (0. == max)
-			max = 1.;
 	
 		// FIXME: we never delete them
-		window_new(argv[i], NULL, max, dims, x);
+		window_new(argv[i], NULL, dims, x);
 	}
 
 	gtk_main();
