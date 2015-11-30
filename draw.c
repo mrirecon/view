@@ -163,10 +163,10 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 			default: assert(0);
 			}
 
-			rgbbuf[x * rgbstr + y * 4 + 0] = 255. * rgb[2];
-			rgbbuf[x * rgbstr + y * 4 + 1] = 255. * rgb[1];
-			rgbbuf[x * rgbstr + y * 4 + 2] = 255. * rgb[0];
-			rgbbuf[x * rgbstr + y * 4 + 3] = 0.;
+			rgbbuf[y * rgbstr + x * 4 + 0] = 255. * rgb[2];
+			rgbbuf[y * rgbstr + x * 4 + 1] = 255. * rgb[1];
+			rgbbuf[y * rgbstr + x * 4 + 2] = 255. * rgb[0];
+			rgbbuf[y * rgbstr + x * 4 + 3] = 0.;
 		}
 	}
 }

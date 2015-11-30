@@ -131,8 +131,8 @@ extern gboolean update_view(struct view_s* v)
 	if (NULL != v->source)
 		cairo_surface_destroy(v->source);
 
-	v->rgbh = v->dims[v->xdim] * v->xzoom;
-	v->rgbw = v->dims[v->ydim] * v->yzoom;
+	v->rgbw = v->dims[v->xdim] * v->xzoom;
+	v->rgbh = v->dims[v->ydim] * v->yzoom;
 	v->rgbstr = 4 * v->rgbw;
 	v->rgb = realloc(v->rgb, v->rgbh * v->rgbstr);
 
@@ -158,14 +158,14 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 
 	GtkAllocation alloc;
 	gtk_widget_get_allocation(v->gtk_viewport, &alloc);
-	double xz = (double)(alloc.height - 5) / (double)v->dims[v->xdim];
-	double yz = (double)(alloc.width - 5) / (double)v->dims[v->ydim];
+	double xz = (double)(alloc.width - 5) / (double)v->dims[v->xdim];
+	double yz = (double)(alloc.height - 5) / (double)v->dims[v->ydim];
 
 
-	if (xz > yz / aniso)
-		xz = yz / aniso; // aniso
+	if (yz > xz / aniso)
+		yz = xz / aniso; // aniso
 
-	gtk_adjustment_set_value(v->gtk_zoom, xz);
+	gtk_adjustment_set_value(v->gtk_zoom, yz);
 
 	return FALSE;
 }
@@ -236,8 +236,8 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 
 	double zoom = gtk_adjustment_get_value(v->gtk_zoom);
 	double aniso = gtk_adjustment_get_value(v->gtk_aniso);
-	v->xzoom = zoom;
-	v->yzoom = zoom * aniso;
+	v->xzoom = zoom * aniso;
+	v->yzoom = zoom;
 
 	v->flip = gtk_combo_box_get_active(v->gtk_flip);
 	v->transpose = gtk_toggle_tool_button_get_active(v->gtk_transpose);
@@ -338,7 +338,7 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 		dx[v->xdim] = dx[v->xdim] / v->xzoom;
 		dy[v->ydim] = dy[v->ydim] / v->yzoom;
 
-		resample(v->rgbh, v->rgbw, v->rgbh, v->buf,
+		resample(v->rgbw, v->rgbh, v->rgbw, v->buf,
 			DIMS, dpos, dx, dy, v->dims, v->strs, v->data);
 
 		v->invalid = false;
@@ -347,9 +347,9 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	if (v->rgb_invalid) {
 
-		draw(v->rgbh, v->rgbw, v->rgbstr, v->rgb,
+		draw(v->rgbw, v->rgbh, v->rgbstr, v->rgb,
 			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
-			v->rgbh, v->buf);
+			v->rgbw, v->buf);
 
 
 		v->rgb_invalid = false;
@@ -423,8 +423,8 @@ gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer 
 {
 	struct view_s* v = data;
 
-	int x = event->x;
 	int y = event->y;
+	int x = event->x;
 
 
 	if (event->state & GDK_BUTTON1_MASK) {
