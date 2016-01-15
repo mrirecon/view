@@ -24,3 +24,5 @@ install:
 	install view $(DESTDIR)/usr/lib/bart/commands/
 
 
+clean:
+	rm -f view viewer.inc
