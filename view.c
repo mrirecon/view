@@ -420,50 +420,24 @@ struct view_s* create_view(const char* name, long* pos, const long dims[DIMS], c
 }
 
 
-gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
+
+gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	struct view_s* v = data;
 
 	int y = event->y;
 	int x = event->x;
 
-
-	if (event->state & GDK_BUTTON1_MASK) {
-
-		if (-1 != v->lastx) {
-
-			double low = gtk_adjustment_get_value(v->gtk_winlow);
-			double high = gtk_adjustment_get_value(v->gtk_winhigh);
-
-			low -= (x - v->lastx) / 200.;
-			high -= (y - v->lasty) / 200.;
-
-			if (high > low) {
-
-				gtk_adjustment_set_value(v->gtk_winlow, low);
-				gtk_adjustment_set_value(v->gtk_winhigh, high);
-			}
-		}
-
-		v->lastx = x;	
-		v->lasty = y;
-
-	} else {
-
-		v->lastx = -1;
-		v->lasty = -1;
-	}
-  
 	int x2 = x / v->xzoom;
 	int y2 = y / v->yzoom;
 
-    	if (event->state & GDK_BUTTON2_MASK) {
+	if (event->button == GDK_BUTTON_PRIMARY) {
 
 		v->pos[v->xdim] = x2;
 		v->pos[v->ydim] = y2;
 
-		gtk_adjustment_set_value(v->gtk_posall[v->xdim], v->pos[v->xdim]);
-		gtk_adjustment_set_value(v->gtk_posall[v->ydim], v->pos[v->ydim]);
+		gtk_adjustment_set_value(v->gtk_posall[v->xdim], x2);
+		gtk_adjustment_set_value(v->gtk_posall[v->ydim], y2);
 	}
 
 	if ((x2 < v->dims[v->xdim]) && (y2 < v->dims[v->ydim])) {
@@ -486,6 +460,42 @@ gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer 
 	}
 
 	return FALSE;
+}
+
+gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
+{
+	struct view_s* v = data;
+
+	int y = event->y;
+	int x = event->x;
+
+	if (event->state & GDK_BUTTON3_MASK) {
+
+		if (-1 != v->lastx) {
+
+			double low = gtk_adjustment_get_value(v->gtk_winlow);
+			double high = gtk_adjustment_get_value(v->gtk_winhigh);
+
+			low -= (x - v->lastx) / 200.;
+			high -= (y - v->lasty) / 200.;
+
+			if (high > low) {
+
+				gtk_adjustment_set_value(v->gtk_winlow, low);
+				gtk_adjustment_set_value(v->gtk_winhigh, high);
+			}
+		}
+
+		v->lastx = x;
+		v->lasty = y;
+
+	} else {
+
+		v->lastx = -1;
+		v->lasty = -1;
+	}
+
+	return TRUE;
 }
 
 
