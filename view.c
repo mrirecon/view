@@ -437,6 +437,21 @@ struct view_s* create_view(const char* name, long* pos, const long dims[DIMS], c
 }
 
 
+static void delete_view(struct view_s* v)
+{
+	v->next->prev = v->prev;
+	v->prev->next = v->next;
+
+	free(v->buf);
+	free(v->rgb);
+
+#if 0
+	free(v->pos);
+	//free(v);
+#endif
+}
+
+
 extern gboolean toggle_sync(GtkWidget *widget, GtkToggleButton* button, gpointer data)
 {
 	struct view_s* v = data;
@@ -555,8 +570,12 @@ extern gboolean show_hide(GtkWidget *widget, GtkCheckButton* button)
 
 static int nr_windows = 0;
 
-extern gboolean window_close(GtkWidget *widget, gpointer data)
+extern gboolean window_close(GtkWidget *widget, GdkEvent* event, gpointer data)
 {
+	struct view_s* v = data;
+
+	delete_view(v);
+
 	if (0 == --nr_windows)
 		gtk_main_quit();
 
