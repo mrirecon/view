@@ -39,6 +39,10 @@ const char* viewer_gui =
 
 struct view_s {
 
+	struct view_s* next;
+	struct view_s* prev;
+	bool sync;
+
 	const char* name;
 
 	// geometry
@@ -279,6 +283,16 @@ extern gboolean window_callback(GtkWidget *widget, gpointer data)
 	v->winlow = gtk_adjustment_get_value(v->gtk_winlow);
 	v->winhigh = gtk_adjustment_get_value(v->gtk_winhigh);
 
+	for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
+
+		if (v->sync && v2->sync) {
+
+			gtk_adjustment_set_value(v2->gtk_winlow, v->winlow);
+			gtk_adjustment_set_value(v2->gtk_winhigh, v->winhigh);
+			gtk_combo_box_set_active(v2->gtk_mode, v->mode);
+		}
+	}
+
 	v->rgb_invalid = true;
 
 	update_view(v);
@@ -381,6 +395,9 @@ struct view_s* create_view(const char* name, long* pos, const long dims[DIMS], c
 
 	struct view_s* v = xmalloc(sizeof(struct view_s));
 
+	v->next = v->prev = v;
+	v->sync = true;
+
 	v->name = name;
 	v->pos = pos;
 	v->max = 1.;
@@ -420,8 +437,16 @@ struct view_s* create_view(const char* name, long* pos, const long dims[DIMS], c
 }
 
 
+extern gboolean toggle_sync(GtkWidget *widget, GtkToggleButton* button, gpointer data)
+{
+	struct view_s* v = data;
+	v->sync = !v->sync;
 
-gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+	return FALSE;
+}
+
+
+extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	struct view_s* v = data;
 
@@ -431,13 +456,22 @@ gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer d
 	int x2 = x / v->xzoom;
 	int y2 = y / v->yzoom;
 
-	if (event->button == GDK_BUTTON_PRIMARY) {
+	if (event->button == GDK_BUTTON_SECONDARY) {
 
 		v->pos[v->xdim] = x2;
 		v->pos[v->ydim] = y2;
 
 		gtk_adjustment_set_value(v->gtk_posall[v->xdim], x2);
 		gtk_adjustment_set_value(v->gtk_posall[v->ydim], y2);
+
+		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
+
+			if (v->sync && v2->sync) {
+
+				gtk_adjustment_set_value(v2->gtk_posall[v->xdim], x2);
+				gtk_adjustment_set_value(v2->gtk_posall[v->ydim], y2);
+			}
+		}
 	}
 
 	if ((x2 < v->dims[v->xdim]) && (y2 < v->dims[v->ydim])) {
@@ -462,14 +496,16 @@ gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer d
 	return FALSE;
 }
 
-gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
+
+
+extern gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
 {
 	struct view_s* v = data;
 
 	int y = event->y;
 	int x = event->x;
 
-	if (event->state & GDK_BUTTON3_MASK) {
+	if (event->state & GDK_BUTTON1_MASK) {
 
 		if (-1 != v->lastx) {
 
@@ -483,6 +519,15 @@ gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer 
 
 				gtk_adjustment_set_value(v->gtk_winlow, low);
 				gtk_adjustment_set_value(v->gtk_winhigh, high);
+
+				for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
+
+					if (v->sync && v2->sync) {
+
+						gtk_adjustment_set_value(v2->gtk_winlow, low);
+						gtk_adjustment_set_value(v2->gtk_winhigh, high);
+					}
+				}
 			}
 		}
 
@@ -495,7 +540,7 @@ gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer 
 		v->lasty = -1;
 	}
 
-	return TRUE;
+	return FALSE;
 }
 
 
@@ -521,7 +566,7 @@ extern gboolean window_close(GtkWidget *widget, gpointer data)
 
 
 
-static void window_new(const char* name, long* pos, const long dims[DIMS], const complex float* x)
+static struct view_s* window_new(const char* name, long* pos, const long dims[DIMS], const complex float* x)
 {
 	struct view_s* v = create_view(name, pos, dims, x);
 
@@ -583,13 +628,20 @@ static void window_new(const char* name, long* pos, const long dims[DIMS], const
 	refresh_callback(NULL, v);
 	geom_callback(NULL, v);
 	window_callback(NULL, v);
+
+	return v;
 }
 
 extern gboolean window_clone(GtkWidget *widget, gpointer data)
 {
 	struct view_s* v = data;
 
-	window_new(v->name, v->pos, v->dims, v->data);
+	struct view_s* v2 = window_new(v->name, v->pos, v->dims, v->data);
+
+	v2->next = v->next;
+	v->next->prev = v2;
+	v2->prev = v;
+	v->next = v2;
 
 	return FALSE;
 }
