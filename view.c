@@ -1,9 +1,9 @@
-/* Copyright 2015. Martin Uecker.
+/* Copyright 2015-2016. Martin Uecker.
  * All rights reserved. Use of this source code is governed by
  * a BSD-style license which can be found in the LICENSE file.
  *
  * Author:
- *	2015 Martin Uecker <martin.uecker@med.uni-goettinge.de>
+ *	2015-2016 Martin Uecker <martin.uecker@med.uni-goettinge.de>
  */
 
 #define _GNU_SOURCE
@@ -203,30 +203,30 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 		v->pos[j] = gtk_adjustment_get_value(v->gtk_posall[j]);
 		bool check = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[j]));
 
-		if (check) {
+		if (!check)
+			continue;
 
-			if (1 == v->dims[j])
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[j]), FALSE);
-			else
-			if ((j != v->xdim) && (j != v->ydim)) {
+		if (1 == v->dims[j])
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[j]), FALSE);
+		else
+		if ((j != v->xdim) && (j != v->ydim)) {
 
-				for (int i = 0; i < DIMS; i++) {
+			for (int i = 0; i < DIMS; i++) {
 
-					if (v->xdim == (DIMS + j - i) % DIMS) {
+				if (v->xdim == (DIMS + j - i) % DIMS) {
 
-						gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[v->xdim]), FALSE);
-						v->xdim = j;
-						break;
-					}
-
-					if (v->ydim == (DIMS + j - i) % DIMS) {
-
-						gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[v->ydim]), FALSE);
-						v->ydim = j;
-						break;
-					}
-
+					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[v->xdim]), FALSE);
+					v->xdim = j;
+					break;
 				}
+
+				if (v->ydim == (DIMS + j - i) % DIMS) {
+
+					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[v->ydim]), FALSE);
+					v->ydim = j;
+					break;
+				}
+
 			}
 		}
 	}
@@ -322,6 +322,7 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 		dx[v->xdim] = 1.;
 		dy[v->ydim] = 1.;
+
 
 		if ((XY == v->flip) || (XO == v->flip)) {
 
