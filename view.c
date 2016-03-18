@@ -22,11 +22,12 @@
 #include "num/multind.h"
 
 #include "misc/misc.h"
-#include "misc/mmio.h"
 #include "misc/png.h"
 #include "misc/debug.h"
 
 #include "draw.h"
+
+#include "view.h"
 
 #ifndef DIMS
 #define DIMS 16
@@ -585,7 +586,7 @@ extern gboolean window_close(GtkWidget *widget, GdkEvent* event, gpointer data)
 
 
 
-static struct view_s* window_new(const char* name, long* pos, const long dims[DIMS], const complex float* x)
+extern struct view_s* window_new(const char* name, long* pos, const long dims[DIMS], const complex float* x)
 {
 	struct view_s* v = create_view(name, pos, dims, x);
 
@@ -668,35 +669,5 @@ extern gboolean window_clone(GtkWidget *widget, gpointer data)
 }
 
 
-int main(int argc, char* argv[])
-{
-	int c;
-	gtk_init(&argc, &argv);
 
-	while (-1 != (c = getopt(argc, argv, "h"))) {
-
-		switch (c) {
-		case 'h':
-		default:
-			abort();
-		}
-	}
-
-	if (argc - optind < 1)
-		abort();
-
-
-	for (int i = optind; i < argc; i++) {
-
-		long dims[DIMS];
-		complex float* x = load_cfl(argv[i], DIMS, dims);
-	
-		// FIXME: we never delete them
-		window_new(argv[i], NULL, dims, x);
-	}
-
-	gtk_main();
-
-	return 0;
-}
 
