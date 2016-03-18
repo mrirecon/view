@@ -489,7 +489,7 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 		}
 	}
 
-	if ((x2 < v->dims[v->xdim]) && (y2 < v->dims[v->ydim])) {
+	if (event->button == GDK_BUTTON_SECONDARY) {
 
 		float pos[DIMS];
 		
@@ -661,6 +661,8 @@ extern gboolean window_clone(GtkWidget *widget, gpointer data)
 	v->next->prev = v2;
 	v2->prev = v;
 	v->next = v2;
+
+	window_callback(NULL, v);
 
 	return FALSE;
 }
