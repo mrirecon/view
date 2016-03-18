@@ -176,10 +176,25 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 }
 
 
-extern gboolean refresh_callback(GtkWidget *widget, gpointer data)
-{
-	struct view_s* v = data;
 
+extern void view_setpos(struct view_s* v, unsigned int flags, const long pos[DIMS])
+{
+	for (unsigned int i = 0; i < DIMS; i++) {
+
+		if (MD_IS_SET(flags, i)) {
+
+			v->pos[i] = pos[i];
+
+			for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
+				if (v->sync && v2->sync)
+					gtk_adjustment_set_value(v2->gtk_posall[i], v->pos[i]);
+		}
+	}
+}
+
+
+extern void view_refresh(struct view_s* v)
+{
 	v->invalid = true;
 
 	long size = md_calc_size(DIMS, v->dims);
@@ -194,7 +209,11 @@ extern gboolean refresh_callback(GtkWidget *widget, gpointer data)
 	v->max = max;
 
 	update_view(v);
+}
 
+extern gboolean refresh_callback(GtkWidget *widget, gpointer data)
+{
+	view_refresh(data);
 	return FALSE;
 }
 
