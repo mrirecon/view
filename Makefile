@@ -13,11 +13,11 @@ CFLAGS += -std=c11 -fopenmp
 
 all: view
 
-viewer.inc: viewer.ui
-	@echo "STRINGIFY(`cat viewer.ui`)" > viewer.inc
+src/viewer.inc: src/viewer.ui
+	@echo "STRINGIFY(`cat src/viewer.ui`)" > src/viewer.inc
 
-view:	main.c view.[ch] draw.[ch] viewer.inc
-	$(CC) $(CFLAGS) -export-dynamic -o view -I$(TOOLBOX_INC) `pkg-config --cflags gtk+-3.0` main.c view.c draw.c `pkg-config --libs gtk+-3.0` $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libnum.a -lm -lpng
+view:	src/main.c src/view.[ch] src/draw.[ch] src/viewer.inc
+	$(CC) $(CFLAGS) -export-dynamic -o view -I$(TOOLBOX_INC) `pkg-config --cflags gtk+-3.0` src/main.c src/view.c src/draw.c `pkg-config --libs gtk+-3.0` $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libnum.a -lm -lpng
 
 
 install:
