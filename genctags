@@ -1,2 +1,0 @@
-#!/bin/bash
-ctags  --langmap=c++:+.cu --extra=+f `find . -regex '.*\.[ch]u*' -print`
