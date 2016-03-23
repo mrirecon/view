@@ -1,7 +1,7 @@
 
 CUDA?=0
+CUDA_BASE ?= /usr/local/cuda
 
-cuda.top ?= /usr/local/cuda
 
 ifeq ($(TOOLBOX_PATH),)
 TOOLBOX_INC=/usr/include/bart/
@@ -16,9 +16,9 @@ CFLAGS += -std=c11 -fopenmp
 
 
 ifeq ($(CUDA),1)
-	CUDA_L := -L$(cuda.top)/lib64 -lcufft -lcudart -lcublas
+    CUDA_L := -L$(CUDA_BASE)/lib64 -lcufft -lcudart -lcublas
 else
-	CUDA_L :=
+    CUDA_L :=
 endif
 
 
