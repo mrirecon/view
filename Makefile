@@ -1,4 +1,8 @@
 
+CUDA?=0
+
+cuda.top ?= /usr/local/cuda
+
 ifeq ($(TOOLBOX_PATH),)
 TOOLBOX_INC=/usr/include/bart/
 TOOLBOX_LIB=/usr/lib/bart/
@@ -9,6 +13,13 @@ endif
 
 CFLAGS ?= -Wall -O2
 CFLAGS += -std=c11 -fopenmp
+
+
+ifeq ($(CUDA),1)
+	CUDA_L := -L$(cuda.top)/lib64 -lcufft -lcudart -lcublas
+else
+	CUDA_L :=
+endif
 
 
 all: view
@@ -24,3 +35,5 @@ install:
 	install view $(DESTDIR)/usr/lib/bart/commands/
 
 
+clean:
+	rm -f view viewer.inc
