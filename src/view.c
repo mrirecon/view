@@ -183,11 +183,11 @@ extern void view_setpos(struct view_s* v, unsigned int flags, const long pos[DIM
 
 		if (MD_IS_SET(flags, i)) {
 
-			v->pos[i] = pos[i];
+			gtk_adjustment_set_value(v->gtk_posall[i], pos[i]);
 
 			for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
 				if (v->sync && v2->sync)
-					gtk_adjustment_set_value(v2->gtk_posall[i], v->pos[i]);
+					gtk_adjustment_set_value(v2->gtk_posall[i], pos[i]);
 		}
 	}
 }
@@ -444,7 +444,7 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 
 
-struct view_s* create_view(const char* name, long* pos, const long dims[DIMS], const complex float* data)
+struct view_s* create_view(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* data)
 {
 	long sq_dims[2] = { 0 };
 
@@ -462,11 +462,12 @@ struct view_s* create_view(const char* name, long* pos, const long dims[DIMS], c
 	v->sync = true;
 
 	v->name = name;
-	v->pos = pos;
 	v->max = 1.;
 
-	if (NULL == v->pos)
-		v->pos = xmalloc(DIMS * sizeof(long));
+	v->pos = xmalloc(DIMS * sizeof(long));
+
+	for (int i = 0; i < DIMS; i++)
+		v->pos[i] = (NULL != pos) ? pos[i] : 0;
 
 	v->xdim = sq_dims[0];
 	v->ydim = sq_dims[1];
@@ -482,10 +483,6 @@ struct view_s* create_view(const char* name, long* pos, const long dims[DIMS], c
 	md_copy_dims(DIMS, v->dims, dims);
 	md_calc_strides(DIMS, v->strs, dims, sizeof(complex float));
 	v->data = data;
-
-	for (int i = 0; i < DIMS; i++)
-		v->pos[i] = 0;
-
 
 	v->winlow = 0.;
 	v->winhigh = 1.;
@@ -656,7 +653,7 @@ extern gboolean window_close(GtkWidget *widget, GdkEvent* event, gpointer data)
 
 
 
-extern struct view_s* window_new(const char* name, long* pos, const long dims[DIMS], const complex float* x)
+extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x)
 {
 	struct view_s* v = create_view(name, pos, dims, x);
 
@@ -695,7 +692,7 @@ extern struct view_s* window_new(const char* name, long* pos, const long dims[DI
 		snprintf(pname, 10, "pos%02d", j);
 		v->gtk_posall[j] = GTK_ADJUSTMENT(gtk_builder_get_object(builder, pname));
 		gtk_adjustment_set_upper(v->gtk_posall[j], v->dims[j] - 1);
-		gtk_adjustment_set_value(v->gtk_posall[j], 0);
+		gtk_adjustment_set_value(v->gtk_posall[j], v->pos[j]);
 
 		snprintf(pname, 10, "check%02d", j);
 		v->gtk_checkall[j] = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, pname));
@@ -715,13 +712,13 @@ extern struct view_s* window_new(const char* name, long* pos, const long dims[DI
 
 	nr_windows++;
 
+	fit_callback(NULL, v);
 	refresh_callback(NULL, v);
 	geom_callback(NULL, v);
 	window_callback(NULL, v);
 
 	return v;
 }
-
 
 void window_connect_sync(struct view_s* v, struct view_s* v2)
 {
@@ -734,13 +731,20 @@ void window_connect_sync(struct view_s* v, struct view_s* v2)
 	window_callback(NULL, v);
 }
 
+struct view_s* view_clone(struct view_s* v, const long pos[DIMS])
+{
+	struct view_s* v2 = window_new(v->name, pos, v->dims, v->data);
+
+	window_connect_sync(v, v2);
+
+	return v2;
+}
+
 extern gboolean window_clone(GtkWidget *widget, gpointer data)
 {
 	struct view_s* v = data;
 
-	struct view_s* v2 = window_new(v->name, v->pos, v->dims, v->data);
-
-	window_connect_sync(v, v2);
+	view_clone(v, v->pos);
 
 	return FALSE;
 }
