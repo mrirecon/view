@@ -196,24 +196,13 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolItem" id="toolbutton4">
+              <object class="GtkToggleToolButton" id="fit">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkButton" id="fit">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
-                    <signal name="clicked" handler="fit_callback" swapped="no"/>
-                    <child>
-                      <object class="GtkImage" id="image2">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="stock">gtk-zoom-fit</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
+                <property name="label" translatable="yes">fit</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-zoom-fit</property>
+                <signal name="clicked" handler="fit_callback" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -489,7 +478,7 @@
                 <property name="can_focus">True</property>
                 <property name="shadow_type">in</property>
                 <property name="min_content_width">100</property>
-                <property name="min_content_height">200</property>
+                <property name="min_content_height">100</property>
                 <child>
                   <object class="GtkViewport" id="viewport1">
                     <property name="visible">True</property>
@@ -502,6 +491,7 @@
                         <signal name="button-press-event" handler="button_press_event" swapped="no"/>
                         <signal name="draw" handler="draw_callback" swapped="no"/>
                         <signal name="motion-notify-event" handler="motion_notify_event" swapped="no"/>
+			<signal name="configure-event" handler="configure_callback" swapped="no"/>
                       </object>
                     </child>
                   </object>

@@ -90,6 +90,7 @@ struct view_s {
 	GtkAdjustment* gtk_aniso;
 	GtkEntry* gtk_entry;
 	GtkToggleToolButton* gtk_transpose;
+	GtkToggleToolButton* gtk_fit;
 
 	GtkAdjustment* gtk_posall[DIMS];
 	GtkCheckButton* gtk_checkall[DIMS];
@@ -159,6 +160,11 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 {
 	struct view_s* v = data;
 
+	gboolean flag = gtk_toggle_tool_button_get_active(v->gtk_fit);
+
+	if (!flag)
+		return FALSE;
+
 	double aniso = gtk_adjustment_get_value(v->gtk_aniso);
 
 	GtkAllocation alloc;
@@ -175,6 +181,11 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 	return FALSE;
 }
 
+
+extern gboolean configure_callback(GtkWidget *widget, GdkEvent* event, gpointer data)
+{
+	return fit_callback(widget, data);
+}
 
 
 extern void view_setpos(struct view_s* v, unsigned int flags, const long pos[DIMS])
@@ -685,6 +696,8 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 	gtk_combo_box_set_active(v->gtk_flip, 0);
 
 	v->gtk_transpose = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "transpose"));
+	v->gtk_fit = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "fit"));
+	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_fit), TRUE);
 
 	for (int j = 0; j < DIMS; j++) {
 
@@ -701,18 +714,22 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[v->xdim]), TRUE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[v->ydim]), TRUE);
 
+#if 0
+	gtk_widget_hide(GTK_WIDGET(gtk_builder_get_object(builder, "toolbar1")));
+	gtk_widget_hide(GTK_WIDGET(gtk_builder_get_object(builder, "toolbar2")));
+	gtk_widget_hide(GTK_WIDGET(gtk_builder_get_object(builder, "entry")));
+#endif
 	gtk_builder_connect_signals(builder, v);
 
 	GtkWindow* window = GTK_WINDOW(gtk_builder_get_object(builder, "window1"));
 	g_object_unref(G_OBJECT(builder));
 
 	gtk_window_set_title(window, name);
-
 	gtk_widget_show(GTK_WIDGET(window));
 
 	nr_windows++;
 
-	fit_callback(NULL, v);
+//	fit_callback(NULL, v);
 	refresh_callback(NULL, v);
 	geom_callback(NULL, v);
 	window_callback(NULL, v);
