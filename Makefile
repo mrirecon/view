@@ -20,7 +20,7 @@ TOOLBOX_LIB=$(TOOLBOX_PATH)/lib/
 endif
 
 
-CC = gcc
+CC ?= gcc
 CFLAGS ?= -Wall -O2
 CFLAGS += -std=c11 -fopenmp
 
