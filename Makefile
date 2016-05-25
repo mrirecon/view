@@ -38,6 +38,8 @@ else
     EXPDYN = -export-dynamic
 endif
 
+-include Makefile.local
+
 
 all: view
 

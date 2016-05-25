@@ -2,3 +2,4 @@ view
 viewer.inc
 tags
 *.swp
+Makefile.local
