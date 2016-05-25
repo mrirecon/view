@@ -7,6 +7,7 @@
  */
 
 #include <complex.h>
+#include <string.h>
 
 #include <gtk/gtk.h>
 
@@ -40,7 +41,26 @@ int main(int argc, char* argv[])
 	for (int i = 1; i < argc; i++) {
 
 		long dims[DIMS];
+
+		/*
+		 * If the filename ends in ".hdr", ".cfl" or just "." (from
+		 * tab-completion), just replace the "." with a \0-character.
+		 *
+		 * Ignoring '.hdr' and '.cfl' is useful since now this viewer
+		 * can be set as the default program to open these files from
+		 * a file manager.
+		 */
+
+		char* dot = strrchr(argv[i], '.');
+
+		if ((NULL != dot) && (	 !strcmp(dot, ".cfl") 
+				      || !strcmp(dot, ".hdr") 
+				      || !strcmp(dot, ".")))
+			*dot = '\0';
+
 		complex float* x = load_cfl(argv[i], DIMS, dims);
+
+
 
 		// FIXME: we never delete them
 		struct view_s* v2 = window_new(argv[i], NULL, dims, x);
