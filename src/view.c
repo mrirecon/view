@@ -74,7 +74,7 @@ struct view_s {
 	bool invalid;
 	bool rgb_invalid;
 
-	// data	
+	// data
 	long dims[DIMS];
 	long strs[DIMS];
 	const complex float* data;
@@ -108,11 +108,11 @@ static void add_text(cairo_surface_t* surface, int x, int y, int size, const cha
 
 	PangoLayout* layout = pango_cairo_create_layout(cr);
 	pango_layout_set_text(layout, text, -1);
- 	PangoFontDescription* desc = pango_font_description_new();
+	PangoFontDescription* desc = pango_font_description_new();
 	pango_font_description_set_family(desc, "sans");
 	pango_font_description_set_weight(desc, PANGO_WEIGHT_BOLD);
 	pango_font_description_set_absolute_size(desc, size * PANGO_SCALE);
- 	pango_layout_set_font_description(layout, desc);
+	pango_layout_set_font_description(layout, desc);
 	pango_font_description_free(desc);
 
 	int w = 0;
@@ -652,18 +652,25 @@ extern struct view_s* window_new(const char* name, long* pos, const long dims[DI
 	return v;
 }
 
-extern gboolean window_clone(GtkWidget *widget, gpointer data)
+
+void window_connect_sync(struct view_s* v, struct view_s* v2)
 {
-	struct view_s* v = data;
-
-	struct view_s* v2 = window_new(v->name, v->pos, v->dims, v->data);
-
+	// add to linked list for sync
 	v2->next = v->next;
 	v->next->prev = v2;
 	v2->prev = v;
 	v->next = v2;
 
 	window_callback(NULL, v);
+}
+
+extern gboolean window_clone(GtkWidget *widget, gpointer data)
+{
+	struct view_s* v = data;
+
+	struct view_s* v2 = window_new(v->name, v->pos, v->dims, v->data);
+
+	window_connect_sync(v, v2);
 
 	return FALSE;
 }

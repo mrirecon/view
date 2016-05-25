@@ -35,13 +35,27 @@ int main(int argc, char* argv[])
 
 	cmdline(&argc, argv, 1, 100, usage_str, help_str, ARRAY_SIZE(opts), opts);
 
+	struct view_s* v = NULL;
+
 	for (int i = 1; i < argc; i++) {
 
 		long dims[DIMS];
 		complex float* x = load_cfl(argv[i], DIMS, dims);
-	
+
 		// FIXME: we never delete them
-		window_new(argv[i], NULL, dims, x);
+		struct view_s* v2 = window_new(argv[i], NULL, dims, x);
+
+		// If multiple files are passed on the commandline, add them to window
+		// list. This enables sync of windowing and so on...
+
+		if (NULL != v) {
+
+			window_connect_sync(v, v2);
+
+		} else {
+
+			v = v2;
+		}
 	}
 
 	gtk_main();
