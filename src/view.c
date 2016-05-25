@@ -462,6 +462,27 @@ extern gboolean toggle_sync(GtkWidget *widget, GtkToggleButton* button, gpointer
 }
 
 
+static void update_status_bar(struct view_s* v, int x2, int y2)
+{
+	float pos[DIMS];
+
+	for (int i = 0; i < DIMS; i++)
+		pos[i] = v->pos[i];
+
+	pos[v->xdim] = x2;
+	pos[v->ydim] = y2;
+
+	complex float val = sample(DIMS, pos, v->dims, v->strs, v->data);
+
+	// FIXME: make sure this matches exactly the pixel
+	char buf[100];
+	snprintf(buf, 100, "Pos: %03d %03d Magn: %.3e Val: %+.3e%+.3ei Arg: %+.2f", x2, y2,
+			cabsf(val), crealf(val), cimagf(val), cargf(val));
+
+	gtk_entry_set_text(v->gtk_entry, buf);
+}
+
+
 extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	struct view_s* v = data;
@@ -480,35 +501,19 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 		gtk_adjustment_set_value(v->gtk_posall[v->xdim], x2);
 		gtk_adjustment_set_value(v->gtk_posall[v->ydim], y2);
 
+		update_status_bar(v, x2, y2);
+
 		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
 
 			if (v->sync && v2->sync) {
 
 				gtk_adjustment_set_value(v2->gtk_posall[v->xdim], x2);
 				gtk_adjustment_set_value(v2->gtk_posall[v->ydim], y2);
+
+				update_status_bar(v2, x2, y2);
 			}
 		}
 	}
-
-	if (event->button == GDK_BUTTON_SECONDARY) {
-
-		float pos[DIMS];
-		
-		for (int i = 0; i < DIMS; i++)
-			pos[i] = v->pos[i];
-
-		pos[v->xdim] = x2;
-		pos[v->ydim] = y2;
-
-		complex float val = sample(DIMS, pos, v->dims, v->strs, v->data);
-		// FIXME: make sure this matches exactly the pixel
-		char buf[100];
-		snprintf(buf, 100, "Pos: %03d %03d Magn: %.3e Val: %+.3e%+.3ei Arg: %+.2f", x2, y2, 
-				cabsf(val), crealf(val), cimagf(val), cargf(val));
-		
-		gtk_entry_set_text(v->gtk_entry, buf);
-	}
-
 	return FALSE;
 }
 
