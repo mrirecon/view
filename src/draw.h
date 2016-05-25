@@ -1,4 +1,5 @@
-
+#ifndef __view_draw_h
+#define __view_draw_h
 #include <complex.h>
 
 
@@ -15,3 +16,4 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 	long str, const complex float* buf);
 
 
+#endif //__view_draw_h

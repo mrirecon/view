@@ -19,7 +19,8 @@
 
 #include "view.h"
 
-
+extern gboolean window_clone(GtkWidget *widget, gpointer data);
+extern gboolean window_callback(GtkWidget *widget, gpointer data);
 
 static const char usage_str[] = "<image> ...";
 static const char help_str[] = "View images.";
@@ -35,13 +36,26 @@ int main(int argc, char* argv[])
 
 	cmdline(&argc, argv, 1, 100, usage_str, help_str, ARRAY_SIZE(opts), opts);
 
+	struct view_s* v = NULL;
 	for (int i = 1; i < argc; i++) {
 
 		long dims[DIMS];
 		complex float* x = load_cfl(argv[i], DIMS, dims);
-	
+
 		// FIXME: we never delete them
-		window_new(argv[i], NULL, dims, x);
+		struct view_s* v2 = window_new(argv[i], NULL, dims, x);
+		// If multiple files are passed on the commandline, add them to window
+		// list. This code is copied from window_clone(). This enables sync of
+		// windowing and so on...
+		if ( NULL != v) {
+			v2->next = v->next;
+			v->next->prev = v2;
+			v2->prev = v;
+			v->next = v2;
+			window_callback(NULL, v);
+		} else {
+			v = v2;
+		}
 	}
 
 	gtk_main();

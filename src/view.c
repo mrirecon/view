@@ -38,67 +38,6 @@ const char* viewer_gui =
 #include "viewer.inc"
 ;
 
-struct view_s {
-
-	struct view_s* next;
-	struct view_s* prev;
-	bool sync;
-
-	const char* name;
-
-	// geometry
-	long* pos; //[DIMS];
-	int xdim;
-	int ydim;
-	double xzoom;
-	double yzoom;
-	enum flip_t { OO, XO, OY, XY } flip;
-	bool transpose;
-
-	// representation
-	enum mode_t mode;
-	double winhigh;
-	double winlow;
-	double phrot;
-	double max;
-
-	complex float* buf;
-
-	cairo_surface_t* source;
-
-	// rgb buffer
-	int rgbh;
-	int rgbw;
-	int rgbstr;
-	unsigned char* rgb;
-	bool invalid;
-	bool rgb_invalid;
-
-	// data	
-	long dims[DIMS];
-	long strs[DIMS];
-	const complex float* data;
-
-	// widgets
-	GtkComboBox* gtk_mode;
-	GtkComboBox* gtk_flip;
-	GtkWidget* gtk_drawingarea;
-	GtkWidget* gtk_viewport;
-	GtkAdjustment* gtk_winlow;
-	GtkAdjustment* gtk_winhigh;
-	GtkAdjustment* gtk_zoom;
-	GtkAdjustment* gtk_aniso;
-	GtkEntry* gtk_entry;
-	GtkToggleToolButton* gtk_transpose;
-
-	GtkAdjustment* gtk_posall[DIMS];
-	GtkCheckButton* gtk_checkall[DIMS];
-
-	// windowing
-	int lastx;
-	int lasty;
-};
-
 
 
 static void add_text(cairo_surface_t* surface, int x, int y, int size, const char* text)
@@ -108,11 +47,11 @@ static void add_text(cairo_surface_t* surface, int x, int y, int size, const cha
 
 	PangoLayout* layout = pango_cairo_create_layout(cr);
 	pango_layout_set_text(layout, text, -1);
- 	PangoFontDescription* desc = pango_font_description_new();
+	PangoFontDescription* desc = pango_font_description_new();
 	pango_font_description_set_family(desc, "sans");
 	pango_font_description_set_weight(desc, PANGO_WEIGHT_BOLD);
 	pango_font_description_set_absolute_size(desc, size * PANGO_SCALE);
- 	pango_layout_set_font_description(layout, desc);
+	pango_layout_set_font_description(layout, desc);
 	pango_font_description_free(desc);
 
 	int w = 0;
