@@ -74,7 +74,7 @@ struct view_s {
 	bool invalid;
 	bool rgb_invalid;
 
-	// data	
+	// data
 	long dims[DIMS];
 	long strs[DIMS];
 	const complex float* data;
@@ -108,11 +108,11 @@ static void add_text(cairo_surface_t* surface, int x, int y, int size, const cha
 
 	PangoLayout* layout = pango_cairo_create_layout(cr);
 	pango_layout_set_text(layout, text, -1);
- 	PangoFontDescription* desc = pango_font_description_new();
+	PangoFontDescription* desc = pango_font_description_new();
 	pango_font_description_set_family(desc, "sans");
 	pango_font_description_set_weight(desc, PANGO_WEIGHT_BOLD);
 	pango_font_description_set_absolute_size(desc, size * PANGO_SCALE);
- 	pango_layout_set_font_description(layout, desc);
+	pango_layout_set_font_description(layout, desc);
 	pango_font_description_free(desc);
 
 	int w = 0;
@@ -462,6 +462,29 @@ extern gboolean toggle_sync(GtkWidget *widget, GtkToggleButton* button, gpointer
 }
 
 
+extern gboolean update_status_bar( struct view_s* v, int x2, int y2)
+{
+	float pos[DIMS];
+
+	for (int i = 0; i < DIMS; i++) {
+		pos[i] = v->pos[i];
+	}
+
+	pos[v->xdim] = x2;
+	pos[v->ydim] = y2;
+
+	complex float val = sample(DIMS, pos, v->dims, v->strs, v->data);
+	// FIXME: make sure this matches exactly the pixel
+	char buf[100];
+	snprintf(buf, 100, "Pos: %03d %03d Magn: %.3e Val: %+.3e%+.3ei Arg: %+.2f", x2, y2,
+			cabsf(val), crealf(val), cimagf(val), cargf(val));
+
+	gtk_entry_set_text(v->gtk_entry, buf);
+
+	return FALSE;
+}
+
+
 extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	struct view_s* v = data;
@@ -480,35 +503,18 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 		gtk_adjustment_set_value(v->gtk_posall[v->xdim], x2);
 		gtk_adjustment_set_value(v->gtk_posall[v->ydim], y2);
 
+		update_status_bar(v, x2, y2);
+
 		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
 
 			if (v->sync && v2->sync) {
 
 				gtk_adjustment_set_value(v2->gtk_posall[v->xdim], x2);
 				gtk_adjustment_set_value(v2->gtk_posall[v->ydim], y2);
+				update_status_bar(v2, x2, y2);
 			}
 		}
 	}
-
-	if (event->button == GDK_BUTTON_SECONDARY) {
-
-		float pos[DIMS];
-		
-		for (int i = 0; i < DIMS; i++)
-			pos[i] = v->pos[i];
-
-		pos[v->xdim] = x2;
-		pos[v->ydim] = y2;
-
-		complex float val = sample(DIMS, pos, v->dims, v->strs, v->data);
-		// FIXME: make sure this matches exactly the pixel
-		char buf[100];
-		snprintf(buf, 100, "Pos: %03d %03d Magn: %.3e Val: %+.3e%+.3ei Arg: %+.2f", x2, y2, 
-				cabsf(val), crealf(val), cimagf(val), cargf(val));
-		
-		gtk_entry_set_text(v->gtk_entry, buf);
-	}
-
 	return FALSE;
 }
 
@@ -652,18 +658,25 @@ extern struct view_s* window_new(const char* name, long* pos, const long dims[DI
 	return v;
 }
 
-extern gboolean window_clone(GtkWidget *widget, gpointer data)
+
+void window_connect_sync(struct view_s* v, struct view_s* v2)
 {
-	struct view_s* v = data;
-
-	struct view_s* v2 = window_new(v->name, v->pos, v->dims, v->data);
-
+	// add to linked list for sync
 	v2->next = v->next;
 	v->next->prev = v2;
 	v2->prev = v;
 	v->next = v2;
 
 	window_callback(NULL, v);
+}
+
+extern gboolean window_clone(GtkWidget *widget, gpointer data)
+{
+	struct view_s* v = data;
+
+	struct view_s* v2 = window_new(v->name, v->pos, v->dims, v->data);
+
+	window_connect_sync(v, v2);
 
 	return FALSE;
 }

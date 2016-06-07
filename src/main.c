@@ -7,6 +7,7 @@
  */
 
 #include <complex.h>
+#include <string.h>
 
 #include <gtk/gtk.h>
 
@@ -20,6 +21,7 @@
 #include "view.h"
 
 
+void window_connect_sync(struct view_s* , struct view_s* );
 
 static const char usage_str[] = "<image> ...";
 static const char help_str[] = "View images.";
@@ -35,13 +37,27 @@ int main(int argc, char* argv[])
 
 	cmdline(&argc, argv, 1, 100, usage_str, help_str, ARRAY_SIZE(opts), opts);
 
+	struct view_s* v = NULL;
 	for (int i = 1; i < argc; i++) {
-
 		long dims[DIMS];
+
+		// if the filename ends in ".hdr", ".cfl" or just "." (from
+		// tab-completion), just replace the "." with a \0-character.
+		char* dot = strrchr(argv[i], '.');
+		if ( NULL != dot && ( !strcmp(dot, ".cfl") || !strcmp(dot, ".hdr") || !strcmp(dot, ".") ) ) {
+			*dot = '\0';
+		}
 		complex float* x = load_cfl(argv[i], DIMS, dims);
-	
+
 		// FIXME: we never delete them
-		window_new(argv[i], NULL, dims, x);
+		struct view_s* v2 = window_new(argv[i], NULL, dims, x);
+		// If multiple files are passed on the commandline, add them to window
+		// list. This enables sync of windowing and so on...
+		if ( NULL != v) {
+			window_connect_sync(v, v2);
+		} else {
+			v = v2;
+		}
 	}
 
 	gtk_main();
