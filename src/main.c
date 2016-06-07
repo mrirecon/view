@@ -20,8 +20,8 @@
 
 #include "view.h"
 
-extern gboolean window_clone(GtkWidget *widget, gpointer data);
-extern gboolean window_callback(GtkWidget *widget, gpointer data);
+
+void window_connect_sync(struct view_s* , struct view_s* );
 
 static const char usage_str[] = "<image> ...";
 static const char help_str[] = "View images.";
@@ -52,14 +52,9 @@ int main(int argc, char* argv[])
 		// FIXME: we never delete them
 		struct view_s* v2 = window_new(argv[i], NULL, dims, x);
 		// If multiple files are passed on the commandline, add them to window
-		// list. This code is copied from window_clone(). This enables sync of
-		// windowing and so on...
+		// list. This enables sync of windowing and so on...
 		if ( NULL != v) {
-			v2->next = v->next;
-			v->next->prev = v2;
-			v2->prev = v;
-			v->next = v2;
-			window_callback(NULL, v);
+			window_connect_sync(v, v2);
 		} else {
 			v = v2;
 		}

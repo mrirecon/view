@@ -38,6 +38,67 @@ const char* viewer_gui =
 #include "viewer.inc"
 ;
 
+struct view_s {
+
+	struct view_s* next;
+	struct view_s* prev;
+	bool sync;
+
+	const char* name;
+
+	// geometry
+	long* pos; //[DIMS];
+	int xdim;
+	int ydim;
+	double xzoom;
+	double yzoom;
+	enum flip_t { OO, XO, OY, XY } flip;
+	bool transpose;
+
+	// representation
+	enum mode_t mode;
+	double winhigh;
+	double winlow;
+	double phrot;
+	double max;
+
+	complex float* buf;
+
+	cairo_surface_t* source;
+
+	// rgb buffer
+	int rgbh;
+	int rgbw;
+	int rgbstr;
+	unsigned char* rgb;
+	bool invalid;
+	bool rgb_invalid;
+
+	// data
+	long dims[DIMS];
+	long strs[DIMS];
+	const complex float* data;
+
+	// widgets
+	GtkComboBox* gtk_mode;
+	GtkComboBox* gtk_flip;
+	GtkWidget* gtk_drawingarea;
+	GtkWidget* gtk_viewport;
+	GtkAdjustment* gtk_winlow;
+	GtkAdjustment* gtk_winhigh;
+	GtkAdjustment* gtk_zoom;
+	GtkAdjustment* gtk_aniso;
+	GtkEntry* gtk_entry;
+	GtkToggleToolButton* gtk_transpose;
+
+	GtkAdjustment* gtk_posall[DIMS];
+	GtkCheckButton* gtk_checkall[DIMS];
+
+	// windowing
+	int lastx;
+	int lasty;
+};
+
 
 
 static void add_text(cairo_surface_t* surface, int x, int y, int size, const char* text)
@@ -597,18 +658,25 @@ extern struct view_s* window_new(const char* name, long* pos, const long dims[DI
 	return v;
 }
 
-extern gboolean window_clone(GtkWidget *widget, gpointer data)
+
+void window_connect_sync(struct view_s* v, struct view_s* v2)
 {
-	struct view_s* v = data;
-
-	struct view_s* v2 = window_new(v->name, v->pos, v->dims, v->data);
-
+	// add to linked list for sync
 	v2->next = v->next;
 	v->next->prev = v2;
 	v2->prev = v;
 	v->next = v2;
 
 	window_callback(NULL, v);
+}
+
+extern gboolean window_clone(GtkWidget *widget, gpointer data)
+{
+	struct view_s* v = data;
+
+	struct view_s* v2 = window_new(v->name, v->pos, v->dims, v->data);
+
+	window_connect_sync(v, v2);
 
 	return FALSE;
 }
