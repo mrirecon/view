@@ -301,8 +301,41 @@ extern gboolean window_callback(GtkWidget *widget, gpointer data)
 	return FALSE;
 }
 
+void update_buf(struct view_s* v);
+
+
+extern gboolean movie_callback(GtkWidget *widget, gpointer data)
+{
+	struct view_s* v = data;
+
+	int wdim = 10;
+
+	for (unsigned int f = 0; f < v->dims[wdim]; f++) {
+
+		v->pos[wdim] = f;
+		update_buf(v);
+
+		draw(v->rgbw, v->rgbh, v->rgbstr, v->rgb,
+			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
+			v->rgbw, v->buf);
+
+		char name[16];
+		snprintf(name, 16, "mov-%04d.png", f);
+
+		if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, name))
+			gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
+	}
+
+	gtk_entry_set_text(v->gtk_entry, "Movie exported.");
+
+	return FALSE;
+}
+
+
+
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
+#if 1
 	struct view_s* v = data;
 
 	if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, "save.png"))
@@ -310,7 +343,52 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 
 	gtk_entry_set_text(v->gtk_entry, "Saved to: save.png");
 
+	UNUSED(movie_callback);
+#else
+	movie_callback(widget, data);
+#endif
 	return FALSE;
+}
+
+
+void update_buf(struct view_s* v)
+{
+	double dpos[DIMS];
+	for (int i = 0; i < DIMS; i++)
+		dpos[i] = v->pos[i];
+
+	dpos[v->xdim] = 0.;
+	dpos[v->ydim] = 0.;
+
+	double dx[DIMS];
+	for (int i = 0; i < DIMS; i++)
+		dx[i] = 0.;
+
+	double dy[DIMS];
+	for (int i = 0; i < DIMS; i++)
+		dy[i] = 0.;
+
+	dx[v->xdim] = 1.;
+	dy[v->ydim] = 1.;
+
+
+	if ((XY == v->flip) || (XO == v->flip)) {
+
+		dpos[v->xdim] = v->dims[v->xdim] - 1;
+		dx[v->xdim] *= -1.;
+	}
+
+	if ((XY == v->flip) || (OY == v->flip)) {
+
+		dpos[v->ydim] = v->dims[v->ydim] - 1;
+		dy[v->ydim] *= -1.;
+	}
+
+	dx[v->xdim] = dx[v->xdim] / v->xzoom;
+	dy[v->ydim] = dy[v->ydim] / v->yzoom;
+
+	resample(v->rgbw, v->rgbh, v->rgbw, v->buf,
+		DIMS, dpos, dx, dy, v->dims, v->strs, v->data);
 }
 
 
@@ -320,42 +398,7 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	if (v->invalid) {
 
-		double dpos[DIMS];
-		for (int i = 0; i < DIMS; i++)
-			dpos[i] = v->pos[i];
-
-		dpos[v->xdim] = 0.;
-		dpos[v->ydim] = 0.;
-
-		double dx[DIMS];
-		for (int i = 0; i < DIMS; i++)
-			dx[i] = 0.;
-
-		double dy[DIMS];
-		for (int i = 0; i < DIMS; i++)
-			dy[i] = 0.;
-
-		dx[v->xdim] = 1.;
-		dy[v->ydim] = 1.;
-
-
-		if ((XY == v->flip) || (XO == v->flip)) {
-
-			dpos[v->xdim] = v->dims[v->xdim] - 1;
-			dx[v->xdim] *= -1.;
-		}
-
-		if ((XY == v->flip) || (OY == v->flip)) {
-
-			dpos[v->ydim] = v->dims[v->ydim] - 1;
-			dy[v->ydim] *= -1.;
-		}
-
-		dx[v->xdim] = dx[v->xdim] / v->xzoom;
-		dy[v->ydim] = dy[v->ydim] / v->yzoom;
-
-		resample(v->rgbw, v->rgbh, v->rgbw, v->buf,
-			DIMS, dpos, dx, dy, v->dims, v->strs, v->data);
+		update_buf(v);
 
 		v->invalid = false;
 		v->rgb_invalid = true;
@@ -483,6 +526,18 @@ static void update_status_bar(struct view_s* v, int x2, int y2)
 }
 
 
+extern void set_position(struct view_s* v, unsigned int dim, unsigned int p)
+{
+	v->pos[dim] = p;
+
+	gtk_adjustment_set_value(v->gtk_posall[dim], p);
+
+	for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
+		if (v->sync && v2->sync)
+			gtk_adjustment_set_value(v2->gtk_posall[dim], p);
+}
+
+
 extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	struct view_s* v = data;
@@ -495,25 +550,16 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 
 	if (event->button == GDK_BUTTON_SECONDARY) {
 
-		v->pos[v->xdim] = x2;
-		v->pos[v->ydim] = y2;
-
-		gtk_adjustment_set_value(v->gtk_posall[v->xdim], x2);
-		gtk_adjustment_set_value(v->gtk_posall[v->ydim], y2);
+		set_position(v, v->xdim, x2);
+		set_position(v, v->ydim, y2);
 
 		update_status_bar(v, x2, y2);
 
-		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
-
-			if (v->sync && v2->sync) {
-
-				gtk_adjustment_set_value(v2->gtk_posall[v->xdim], x2);
-				gtk_adjustment_set_value(v2->gtk_posall[v->ydim], y2);
-
+		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
+			if (v->sync && v2->sync)
 				update_status_bar(v2, x2, y2);
-			}
-		}
 	}
+
 	return FALSE;
 }
 
