@@ -372,19 +372,19 @@ static char* get_spec(int i)
 	case 0: return "x"; break;
 	case 1: return "y"; break;
 	case 2: return "z"; break;
-	case 3: return "c"; break;
-	case 4: return "a"; break;
-	case 5: return "b"; break;
-	case 6: return "c"; break;
-	case 7: return "d"; break;
-	case 8: return "e"; break;
-	case 9: return "f"; break;
-	case 10: return "g"; break;
-	case 11: return "h"; break;
-	case 12: return "i"; break;
-	case 13: return "j"; break;
-	case 14: return "k"; break;
-	default: return "l"; break;
+	case 3: return "coil"; break;
+	case 4: return "map"; break;
+	case 5: return "n"; break;
+	case 6: return "o"; break;
+	case 7: return "p"; break;
+	case 8: return "q"; break;
+	case 9: return "r"; break;
+	case 10: return "frame"; break;
+	case 11: return "s"; break;
+	case 12: return "t"; break;
+	case 13: return "u"; break;
+	case 14: return "v"; break;
+	default: return "w"; break;
    }
 }
 
