@@ -366,7 +366,7 @@ extern gboolean movie_callback(GtkWidget *widget, gpointer data)
 }
 
 // Get dimension specifier for filename
-char* get_spec(int i)
+static char* get_spec(int i)
 {
   switch(i) {
 	case 0: return "x"; break;
