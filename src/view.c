@@ -94,6 +94,10 @@ struct view_s {
 
 	GtkAdjustment* gtk_posall[DIMS];
 	GtkCheckButton* gtk_checkall[DIMS];
+	
+	GtkWidget *dialog; // Save dialog
+	GtkFileChooser *chooser; // Save dialog
+	GtkWindow *window; 
 
 	// windowing
 	int lastx;
@@ -361,17 +365,81 @@ extern gboolean movie_callback(GtkWidget *widget, gpointer data)
 	return FALSE;
 }
 
-
+// Get dimension specifier for filename
+char* get_spec(int i)
+{
+  switch(i) {
+	case 0: return "x"; break;
+	case 1: return "y"; break;
+	case 2: return "z"; break;
+	case 3: return "c"; break;
+	case 4: return "a"; break;
+	case 5: return "b"; break;
+	case 6: return "c"; break;
+	case 7: return "d"; break;
+	case 8: return "e"; break;
+	case 9: return "f"; break;
+	case 10: return "g"; break;
+	case 11: return "h"; break;
+	case 12: return "i"; break;
+	case 13: return "j"; break;
+	case 14: return "k"; break;
+	default: return "l"; break;
+   }
+}
 
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
 #if 1
 	struct view_s* v = data;
+	
+	// Prepare output filename
+	char name[100]; 
+	strcpy(name,v->name);
+	for( int i=0; i<15; i++) {
+	    if(v->pos[i]!=0){
+	      strcat(name,"_");
+	      strcat(name,get_spec(i));
+	      sprintf(name,"%s%ld",name,v->pos[i]);
+	    }
+	}
+	strcat(name,".png");
+	
+	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SAVE;
+	gint res;
+	v->dialog = gtk_file_chooser_dialog_new ("Save File",
+                                      v->window,
+                                      action,
+                                      "Cancel",
+                                      GTK_RESPONSE_CANCEL,
+                                      "Save",
+                                      GTK_RESPONSE_ACCEPT,
+                                      NULL);
+	v->chooser = GTK_FILE_CHOOSER (v->dialog);
 
-	if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, "save.png"))
+	
+
+	gtk_file_chooser_set_current_name (v->chooser, name);
+	
+	// Outputfolder = Inputfolder
+	gtk_file_chooser_set_current_folder (v->chooser, v->name);
+	gtk_file_chooser_set_do_overwrite_confirmation (v->chooser, TRUE);
+	
+
+	res = gtk_dialog_run (GTK_DIALOG (v->dialog));
+	if (res == GTK_RESPONSE_ACCEPT)
+	{
+	  char *filename;
+
+	  filename = gtk_file_chooser_get_filename (v->chooser);
+	  if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, filename))
 		gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
 
-	gtk_entry_set_text(v->gtk_entry, "Saved to: save.png");
+	  gtk_entry_set_text(v->gtk_entry, "Saved!");
+	  g_free (filename);
+	}
+	
+	gtk_widget_destroy (v->dialog);
 
 	UNUSED(movie_callback);
 #else
