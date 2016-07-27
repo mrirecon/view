@@ -762,7 +762,7 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 
 	v->gtk_flip = GTK_COMBO_BOX(gtk_builder_get_object(builder, "flip"));
 	gtk_combo_box_set_active(v->gtk_flip, 0);
-
+    
 	v->gtk_transpose = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "transpose"));
 	v->gtk_fit = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "fit"));
 	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_fit), TRUE);
@@ -791,7 +791,7 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 
 	GtkWindow* window = GTK_WINDOW(gtk_builder_get_object(builder, "window1"));
 	g_object_unref(G_OBJECT(builder));
-
+	v->window = window;
 	gtk_window_set_title(window, name);
 	gtk_widget_show(GTK_WIDGET(window));
 
