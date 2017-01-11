@@ -14,6 +14,8 @@
 
 #include "draw.h"
 
+#include "colormaps.inc"
+
 // multind.h
 #define MD_BIT(x) (1u << (x))
 #define MD_IS_SET(x, y) ((x) & MD_BIT(y))
@@ -39,6 +41,21 @@ static void trans_magnitude(double rgb[3], double a, double b, complex double va
 	rgb[2] *= magn;
 }
 
+static void trans_magnitude_viridis(double rgb[3], double a, double b, complex double value)
+{
+	double magn = window(a, b, cabs(value));
+	// since window returns nonsense (NaN) if a == b, and since casting nonsense to int
+	// and using it as an array subscript is bound to lead to segfaults,
+	// we catch that case here
+	if ( isfinite(magn) ) {
+		int subscript = magn*255.;
+
+		rgb[0] *= viridis[subscript][0];
+		rgb[1] *= viridis[subscript][1];
+		rgb[2] *= viridis[subscript][2];
+	}
+}
+
 static void trans_real(double rgb[3], double a, double b, complex double value)
 {
 	rgb[0] *= window(a, b, +creal(value));
@@ -53,10 +70,29 @@ static void trans_phase(double rgb[3], double a, double b, complex double value)
 	rgb[2] *= (1. + sin(carg(value) + 2. * 2. * M_PI / 3.)) / 2.;
 }
 
+static void trans_phase_MYGBM(double rgb[3], double a, double b, complex double value)
+{
+	double arg = carg(value);
+	if (isfinite(arg)) {
+		int subscript = (arg+M_PI)/2./M_PI*255.;
+		assert( (0 <= subscript) && (subscript <=255) );
+	
+		rgb[0] *= cyclic_mygbm[subscript][0];
+		rgb[1] *= cyclic_mygbm[subscript][1];
+		rgb[2] *= cyclic_mygbm[subscript][2];
+	}
+}
+
 static void trans_complex(double rgb[3], double a, double b, complex double value)
 {
 	trans_magnitude(rgb, a, b, value);
 	trans_phase(rgb, a, b, value);
+}
+
+static void trans_complex_MYGBM(double rgb[3], double a, double b, complex double value)
+{
+	trans_magnitude(rgb, a, b, value);
+	trans_phase_MYGBM(rgb, a, b, value);
 }
 
 static void trans_flow(double rgb[3], double a, double b, complex double value)
@@ -156,8 +192,11 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 			switch (mode) {
 
 			case MAGN: trans_magnitude(rgb, winlow, winhigh, val); break;
+			case MAGN_VIRIDS: trans_magnitude_viridis(rgb, winlow, winhigh, val); break;
 			case PHSE: trans_phase(rgb, winlow, winhigh, val); break;
+			case PHSE_MYGBM: trans_phase_MYGBM(rgb, winlow, winhigh, val); break;
 			case CMPL: trans_complex(rgb, winlow, winhigh, val); break;
+			case CMPL_MYGBM: trans_complex_MYGBM(rgb, winlow, winhigh, val); break;
 			case REAL: trans_real(rgb, winlow, winhigh, val); break;
 			case FLOW: trans_flow(rgb, winlow, winhigh, val); break;
 			default: assert(0);

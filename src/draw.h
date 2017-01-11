@@ -2,7 +2,7 @@
 #include <complex.h>
 
 
-enum mode_t { MAGN, CMPL, PHSE, REAL, FLOW };
+enum mode_t { MAGN, MAGN_VIRIDS, CMPL, CMPL_MYGBM, PHSE, PHSE_MYGBM, REAL, FLOW };
 
 extern complex float sample(int N, const float pos[N], const long dims[N], const long strs[N], const complex float* in);
 

@@ -15,13 +15,22 @@
     </columns>
     <data>
       <row>
-        <col id="0" translatable="yes">MAGNITUDE</col>
+        <col id="0" translatable="yes">MAGNITUDE (gray)</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">MAGNITUDE (viridis)</col>
       </row>
       <row>
         <col id="0" translatable="yes">COMPLEX</col>
       </row>
       <row>
+        <col id="0" translatable="yes">COMPLEX (MYGBM)</col>
+      </row>
+      <row>
         <col id="0" translatable="yes">PHASE</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">PHASE (MYGBM)</col>
       </row>
       <row>
         <col id="0" translatable="yes">REAL</col>
