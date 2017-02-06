@@ -11,6 +11,8 @@
 #include <complex.h>
 #include <stdbool.h>
 
+#include <libgen.h>
+
 #include <gtk/gtk.h>
 #include <pango/pango.h>
 #include <pango/pangocairo.h>
@@ -378,7 +380,7 @@ static char* get_spec(int i)
 	case 6: return "o"; break;
 	case 7: return "p"; break;
 	case 8: return "q"; break;
-	case 9: return "r"; break;
+	case 9: return "slice"; break;
 	case 10: return "frame"; break;
 	case 11: return "s"; break;
 	case 12: return "t"; break;
@@ -394,16 +396,17 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 	struct view_s* v = data;
 	
 	// Prepare output filename
-	char name[100]; 
-	strcpy(name,v->name);
-	for( int i=0; i<15; i++) {
-	    if(v->pos[i]!=0){
+	unsigned int bufsize = 100;
+	char name[bufsize];
+	strncpy(name, v->name, bufsize - 4);
+	for ( int i=0; i<15; i++) {
+	    if ( v->dims[i] != 1 && i != v->xdim && i != v->ydim ){
 	      strcat(name,"_");
 	      strcat(name,get_spec(i));
 	      sprintf(name,"%s%ld",name,v->pos[i]);
 	    }
 	}
-	strcat(name,".png");
+	strncat(name, ".png", 4);
 	
 	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SAVE;
 	gint res;
@@ -419,7 +422,7 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 
 	
 
-	gtk_file_chooser_set_current_name (v->chooser, name);
+	gtk_file_chooser_set_current_name (v->chooser, basename(name));
 	
 	// Outputfolder = Inputfolder
 	gtk_file_chooser_set_current_folder (v->chooser, v->name);
