@@ -164,6 +164,7 @@ extern gboolean update_view(struct view_s* v)
 
 extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 {
+	UNUSED(widget);
 	struct view_s* v = data;
 
 	gboolean flag = gtk_toggle_tool_button_get_active(v->gtk_fit);
@@ -190,6 +191,7 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 
 extern gboolean configure_callback(GtkWidget *widget, GdkEvent* event, gpointer data)
 {
+	UNUSED(event);
 	return fit_callback(widget, data);
 }
 
@@ -230,6 +232,7 @@ extern void view_refresh(struct view_s* v)
 
 extern gboolean refresh_callback(GtkWidget *widget, gpointer data)
 {
+	UNUSED(widget);
 	view_refresh(data);
 	return FALSE;
 }
@@ -237,6 +240,7 @@ extern gboolean refresh_callback(GtkWidget *widget, gpointer data)
 
 extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 {
+	UNUSED(widget);
 	struct view_s* v = data;
 
 	for (int j = 0; j < DIMS; j++) {
@@ -314,6 +318,7 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 
 extern gboolean window_callback(GtkWidget *widget, gpointer data)
 {
+	UNUSED(widget);
 	struct view_s* v = data;
 
 	v->mode = gtk_combo_box_get_active(v->gtk_mode);
@@ -365,6 +370,7 @@ static char* get_spec(int i)
 
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
+	UNUSED(widget);
 	struct view_s* v = data;
 	
 	// Prepare output filename
@@ -513,6 +519,7 @@ void update_buf(struct view_s* v)
 
 extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
+	UNUSED(widget);
 	struct view_s* v = data;
 
 	if (v->invalid) {
@@ -614,6 +621,8 @@ static void delete_view(struct view_s* v)
 
 extern gboolean toggle_sync(GtkWidget *widget, GtkToggleButton* button, gpointer data)
 {
+	UNUSED(widget);
+	UNUSED(button);
 	struct view_s* v = data;
 	v->sync = !v->sync;
 
@@ -656,6 +665,7 @@ extern void set_position(struct view_s* v, unsigned int dim, unsigned int p)
 
 extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
+	UNUSED(widget);
 	struct view_s* v = data;
 
 	int y = event->y;
@@ -683,6 +693,7 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 
 extern gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
 {
+	UNUSED(widget);
 	struct view_s* v = data;
 
 	int y = event->y;
@@ -740,6 +751,8 @@ static int nr_windows = 0;
 
 extern gboolean window_close(GtkWidget *widget, GdkEvent* event, gpointer data)
 {
+	UNUSED(widget);
+	UNUSED(event);
 	struct view_s* v = data;
 
 	delete_view(v);
@@ -848,6 +861,7 @@ struct view_s* view_clone(struct view_s* v, const long pos[DIMS])
 
 extern gboolean window_clone(GtkWidget *widget, gpointer data)
 {
+	UNUSED(widget);
 	struct view_s* v = data;
 
 	view_clone(v, v->pos);
