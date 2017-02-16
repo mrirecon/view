@@ -375,19 +375,18 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 	strncpy(dir, v->name, bufsize);
 
 	for ( int i = 0; i < DIMS; i++) {
-	    if ( v->dims[i] != 1 && i != v->xdim && i != v->ydim ){
-	      strcat(name,"_");
-	      strcat(name,get_spec(i));
-	      sprintf(name,"%s%ld",name,v->pos[i]);
-	    }
+		if ( v->dims[i] != 1 && i != v->xdim && i != v->ydim ){
+			// TODO: this could write past the end of the buffer!
+			strcat(name,"_");
+			strcat(name,get_spec(i));
+			sprintf(name,"%s%ld",name,v->pos[i]);
+		}
 	}
 	strncat(name, ".png", 4);
-	
-	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SAVE;
-	gint res;
+
 	v->dialog = gtk_file_chooser_dialog_new ("Save File",
                                       v->window,
-                                      action,
+				      GTK_FILE_CHOOSER_ACTION_SAVE,
                                       "Cancel",
                                       GTK_RESPONSE_CANCEL,
                                       "Save",
@@ -395,16 +394,13 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
                                       NULL);
 	v->chooser = GTK_FILE_CHOOSER (v->dialog);
 
-	
-
 	gtk_file_chooser_set_current_name (v->chooser, basename(name));
 	
 	// Outputfolder = Inputfolder
 	gtk_file_chooser_set_current_folder (v->chooser, dirname(dir));
 	gtk_file_chooser_set_do_overwrite_confirmation (v->chooser, TRUE);
-	
 
-	res = gtk_dialog_run (GTK_DIALOG (v->dialog));
+	gint res = gtk_dialog_run (GTK_DIALOG (v->dialog));
 
 	if (res == GTK_RESPONSE_ACCEPT) {
 		// export single image
@@ -416,7 +412,7 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 		g_free (filename);
 	}
 
-	
+
 	gtk_widget_destroy (v->dialog);
 	return FALSE;
 }
@@ -426,34 +422,29 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 	UNUSED(widget);
 	struct view_s* v = data;
 
-	// Prepare output filename
 	unsigned int bufsize = 255;
 	char dir[bufsize];
 	strncpy(dir, v->name, bufsize);
 
 	int frame_dim = 10;
 
-	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
-	gint res;
 	v->dialog = gtk_file_chooser_dialog_new("Export movie to folder",
 						v->window,
-						action,
+						GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
 						"Cancel",
 						GTK_RESPONSE_CANCEL,
 						"Export",
 						GTK_RESPONSE_ACCEPT,
 						NULL);
 	v->chooser = GTK_FILE_CHOOSER(v->dialog);
-
 	// Outputfolder = Inputfolder
 	gtk_file_chooser_set_current_folder(v->chooser, dirname(dir));
 
-
-	res = gtk_dialog_run (GTK_DIALOG (v->dialog));
+	gint res = gtk_dialog_run (GTK_DIALOG (v->dialog));
 
 	if (res == GTK_RESPONSE_ACCEPT) {
-		char *dirname = gtk_file_chooser_get_filename(v->chooser);
-		char name[bufsize];
+		char *chosen_dir = gtk_file_chooser_get_filename(v->chooser);
+		char output_name[bufsize];
 		for (unsigned int f = 0; f < v->dims[frame_dim]; f++) {
 			v->pos[frame_dim] = f;
 			update_buf(v);
@@ -464,15 +455,15 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 
 			char suff[16];
 			snprintf(suff, 16, "/mov-%04d.png", f);
-			strncpy(name, dirname, bufsize-16);
-			strncat(name, suff, 16);
+			strncpy(output_name, chosen_dir, bufsize-16);
+			strncat(output_name, suff, 16);
 
-			if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, name))
+			if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, output_name))
 				gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
 		}
+		g_free(chosen_dir);
 		gtk_entry_set_text(v->gtk_entry, "Movie exported.");
 	}
-
 
 	gtk_widget_destroy (v->dialog);
 
