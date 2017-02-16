@@ -340,33 +340,6 @@ extern gboolean window_callback(GtkWidget *widget, gpointer data)
 void update_buf(struct view_s* v);
 
 
-extern gboolean movie_callback(GtkWidget *widget, gpointer data)
-{
-	struct view_s* v = data;
-
-	int wdim = 10;
-
-	for (unsigned int f = 0; f < v->dims[wdim]; f++) {
-
-		v->pos[wdim] = f;
-		update_buf(v);
-
-		draw(v->rgbw, v->rgbh, v->rgbstr, v->rgb,
-			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
-			v->rgbw, v->buf);
-
-		char name[16];
-		snprintf(name, 16, "mov-%04d.png", f);
-
-		if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, name))
-			gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
-	}
-
-	gtk_entry_set_text(v->gtk_entry, "Movie exported.");
-
-	return FALSE;
-}
-
 // Get dimension specifier for filename
 static char* get_spec(int i)
 {
@@ -392,14 +365,16 @@ static char* get_spec(int i)
 
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
-#if 1
 	struct view_s* v = data;
 	
 	// Prepare output filename
-	unsigned int bufsize = 100;
+	unsigned int bufsize = 255;
 	char name[bufsize];
 	strncpy(name, v->name, bufsize - 4);
-	for ( int i=0; i<15; i++) {
+	char dir[bufsize];
+	strncpy(dir, v->name, bufsize);
+
+	for ( int i = 0; i < DIMS; i++) {
 	    if ( v->dims[i] != 1 && i != v->xdim && i != v->ydim ){
 	      strcat(name,"_");
 	      strcat(name,get_spec(i));
@@ -425,29 +400,82 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 	gtk_file_chooser_set_current_name (v->chooser, basename(name));
 	
 	// Outputfolder = Inputfolder
-	gtk_file_chooser_set_current_folder (v->chooser, v->name);
+	gtk_file_chooser_set_current_folder (v->chooser, dirname(dir));
 	gtk_file_chooser_set_do_overwrite_confirmation (v->chooser, TRUE);
 	
 
 	res = gtk_dialog_run (GTK_DIALOG (v->dialog));
-	if (res == GTK_RESPONSE_ACCEPT)
-	{
-	  char *filename;
 
-	  filename = gtk_file_chooser_get_filename (v->chooser);
-	  if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, filename))
-		gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
+	if (res == GTK_RESPONSE_ACCEPT) {
+		// export single image
+		char *filename = gtk_file_chooser_get_filename (v->chooser);
+		if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, filename))
+			gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
 
-	  gtk_entry_set_text(v->gtk_entry, "Saved!");
-	  g_free (filename);
+		gtk_entry_set_text(v->gtk_entry, "Saved!");
+		g_free (filename);
 	}
+
 	
 	gtk_widget_destroy (v->dialog);
+	return FALSE;
+}
 
-	UNUSED(movie_callback);
-#else
-	movie_callback(widget, data);
-#endif
+extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
+{
+	UNUSED(widget);
+	struct view_s* v = data;
+
+	// Prepare output filename
+	unsigned int bufsize = 255;
+	char dir[bufsize];
+	strncpy(dir, v->name, bufsize);
+
+	int frame_dim = 10;
+
+	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+	gint res;
+	v->dialog = gtk_file_chooser_dialog_new("Export movie to folder",
+						v->window,
+						action,
+						"Cancel",
+						GTK_RESPONSE_CANCEL,
+						"Export",
+						GTK_RESPONSE_ACCEPT,
+						NULL);
+	v->chooser = GTK_FILE_CHOOSER(v->dialog);
+
+	// Outputfolder = Inputfolder
+	gtk_file_chooser_set_current_folder(v->chooser, dirname(dir));
+
+
+	res = gtk_dialog_run (GTK_DIALOG (v->dialog));
+
+	if (res == GTK_RESPONSE_ACCEPT) {
+		char *dirname = gtk_file_chooser_get_filename(v->chooser);
+		char name[bufsize];
+		for (unsigned int f = 0; f < v->dims[frame_dim]; f++) {
+			v->pos[frame_dim] = f;
+			update_buf(v);
+
+			draw(v->rgbw, v->rgbh, v->rgbstr, v->rgb,
+				v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
+				v->rgbw, v->buf);
+
+			char suff[16];
+			snprintf(suff, 16, "/mov-%04d.png", f);
+			strncpy(name, dirname, bufsize-16);
+			strncat(name, suff, 16);
+
+			if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, name))
+				gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
+		}
+		gtk_entry_set_text(v->gtk_entry, "Movie exported.");
+	}
+
+
+	gtk_widget_destroy (v->dialog);
+
 	return FALSE;
 }
 
