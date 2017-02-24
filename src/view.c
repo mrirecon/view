@@ -370,19 +370,18 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 	// Prepare output filename
 	unsigned int bufsize = 255;
 	char name[bufsize];
-	strncpy(name, v->name, bufsize - 4);
+	char* cur = name;
+	const char* end = name + bufsize;
+	cur += snprintf(cur, end - cur, "%s", v->name);
 	char dir[bufsize];
 	strncpy(dir, v->name, bufsize);
 
 	for ( int i = 0; i < DIMS; i++) {
 		if ( v->dims[i] != 1 && i != v->xdim && i != v->ydim ){
-			// TODO: this could write past the end of the buffer!
-			strcat(name,"_");
-			strcat(name,get_spec(i));
-			sprintf(name,"%s%ld",name,v->pos[i]);
+			cur += snprintf(cur, end - cur, "_%s_%04ld", get_spec(i), v->pos[i]);
 		}
 	}
-	strncat(name, ".png", 4);
+	cur += snprintf(cur, end - cur, ".png");
 
 	v->dialog = gtk_file_chooser_dialog_new ("Save File",
                                       v->window,
