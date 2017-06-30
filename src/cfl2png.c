@@ -5,8 +5,6 @@
 #include <string.h>
 #include <strings.h>
 
-#include <cairo.h>
-
 #undef MAX
 #undef MIN
 
@@ -17,6 +15,7 @@
 #include "misc/debug.h"
 #include "misc/mmio.h"
 #include "misc/opts.h"
+#include "misc/png.h"
 
 #include "draw.h"
 #include "view.h"
@@ -149,18 +148,15 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 		if (max < cabsf(idata[j]))
 			max = cabsf(idata[j]);
 
-		if (0. == max)
-			max = 1.;
+	if (0. == max)
+		max = 1.;
 
-		int rgbw = dims[xdim] * zoom;
+	int rgbw = dims[xdim] * zoom;
 	int rgbh = dims[ydim] * zoom;
 	int rgbstr = 4 * rgbw;
 	unsigned char* rgb = xmalloc(rgbh * rgbstr);
 
 	complex float* buf = xmalloc(rgbh * rgbw * sizeof(complex float));
-
-	cairo_surface_t* source = cairo_image_surface_create_for_data(rgb,
-								      CAIRO_FORMAT_RGB24, rgbw, rgbh, rgbstr);
 
 	// loop over all dims other than xdim and ydim
 	long loopdims[DIMS];
@@ -199,13 +195,13 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 
 		draw(rgbw, rgbh, rgbstr, rgb,
 		     mode, 1. / max, windowing[0], windowing[1], 0,
-       rgbw, buf);
+			rgbw, buf);
 
-		if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(source, name))
+		if ( 0 != png_write_bgr32(name, rgbw, rgbh, 0, rgb) )
 			error("Error: writing image file.\n");
 	}
 
-	cairo_surface_destroy(source);
+// 	free(source);
 	free(buf);
 	free(rgb);
 }
