@@ -3,6 +3,7 @@
 
 
 enum mode_t { MAGN, MAGN_VIRIDS, CMPL, CMPL_MYGBM, PHSE, PHSE_MYGBM, REAL, FLOW };
+enum flip_t { OO, XO, OY, XY };
 
 extern complex float sample(int N, const float pos[N], const long dims[N], const long strs[N], const complex float* in);
 
@@ -14,4 +15,8 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf);
 
+extern void update_buf(long xdim, long ydim, int N, const long dims[N],  const long strs[N], const long pos[N], enum flip_t flip, double xzoom, double yzoom,
+		long rgbw, long rgbh, const complex float* data, complex float* buf);
+
+extern char* get_spec(int i);
 

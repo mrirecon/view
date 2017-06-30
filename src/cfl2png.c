@@ -5,6 +5,8 @@
 #include <string.h>
 #include <strings.h>
 
+#include <cairo.h>
+
 #undef MAX
 #undef MIN
 
@@ -22,6 +24,8 @@
 #ifndef CFL_SIZE
 #define CFL_SIZE sizeof(complex float)
 #endif
+
+void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, const long dims[DIMS], const complex float* idata);
 
 static const char usage_str[] = "<input> <output_prefix>";
 static const char help_str[] = "Export images to png.";
@@ -104,4 +108,104 @@ int main(int argc, char* argv[])
 	unmap_cfl(DIMS, dims, idata);
 
 	return 0;
+}
+
+
+
+/**
+ * Convert flat index to pos
+ *
+ */
+static void unravel_index(unsigned int D, long pos[D], const long dims[D], long index)
+{
+	for (unsigned int d = 0; d < D; ++d) {
+		if (1 == dims[d])
+			continue;
+		pos[d] = index % dims[d];
+		index /= dims[d];
+	}
+}
+
+
+void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, const long dims[DIMS], const complex float* idata)
+{
+
+	if ( xdim == ydim ) {
+		long sq_dims[2] = { 0 };
+
+		int l = 0;
+
+		for (int i = 0; (i < DIMS) && (l < 2); i++)
+			if (1 != dims[i])
+				sq_dims[l++] = i;
+
+			assert(2 == l);
+		xdim = sq_dims[0];
+		ydim = sq_dims[1];
+	}
+
+	double max = 0.;
+	for (long j = 0; j < md_calc_size(DIMS, dims); j++)
+		if (max < cabsf(idata[j]))
+			max = cabsf(idata[j]);
+
+		if (0. == max)
+			max = 1.;
+
+		int rgbw = dims[xdim] * zoom;
+	int rgbh = dims[ydim] * zoom;
+	int rgbstr = 4 * rgbw;
+	unsigned char* rgb = xmalloc(rgbh * rgbstr);
+
+	complex float* buf = xmalloc(rgbh * rgbw * sizeof(complex float));
+
+	cairo_surface_t* source = cairo_image_surface_create_for_data(rgb,
+								      CAIRO_FORMAT_RGB24, rgbw, rgbh, rgbstr);
+
+	// loop over all dims other than xdim and ydim
+	long loopdims[DIMS];
+	unsigned long loopflags = (MD_BIT(xdim)|MD_BIT(ydim));
+	md_select_dims(DIMS, ~loopflags, loopdims, dims);
+
+	debug_printf(DP_DEBUG3, "flags: %lu\nloopdims: ", loopflags);
+	debug_print_dims(DP_DEBUG3, DIMS, loopdims);
+
+
+
+	long pos[DIMS] = { [0 ... DIMS - 1] = 0  };
+	long strs[DIMS];
+	md_calc_strides(DIMS, strs, dims, sizeof(complex float));
+	for (unsigned long d = 0l; d < md_calc_size(DIMS, loopdims); ++d){
+		unravel_index(DIMS, pos, loopdims, d);
+		debug_printf(DP_DEBUG3, "\ti: %lu\n\t", d);
+		debug_print_dims(DP_DEBUG3, DIMS, pos);
+
+		// Prepare output filename
+		unsigned int bufsize = 255;
+		char name[bufsize];
+		char* cur = name;
+		const char* end = name + bufsize;
+		cur += snprintf(cur, end - cur, "%s", output_prefix);
+		for ( unsigned int i = 0; i < DIMS; i++) {
+			if ( 1 != loopdims[i] ){
+				cur += snprintf(cur, end - cur, "_%s_%04ld", get_spec(i), pos[i]);
+			}
+		}
+		cur += snprintf(cur, end - cur, ".png");
+		debug_printf(DP_DEBUG2, "\t%s\n", name);
+
+		update_buf(xdim, ydim, DIMS, dims, strs, pos, flip, zoom, zoom,
+			   rgbw, rgbh, idata, buf);
+
+		draw(rgbw, rgbh, rgbstr, rgb,
+		     mode, 1. / max, windowing[0], windowing[1], 0,
+       rgbw, buf);
+
+		if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(source, name))
+			error("Error: writing image file.\n");
+	}
+
+	cairo_surface_destroy(source);
+	free(buf);
+	free(rgb);
 }

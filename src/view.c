@@ -342,33 +342,13 @@ extern gboolean window_callback(GtkWidget *widget, gpointer data)
 	return FALSE;
 }
 
-void update_buf(struct view_s* v);
-
-
-// Get dimension specifier for filename
-static char* get_spec(int i)
+static void update_buf_view(struct view_s* v)
 {
-  switch(i) {
-	case  0: return "x"; break;
-	case  1: return "y"; break;
-	case  2: return "z"; break;
-	case  3: return "coil"; break;
-	case  4: return "map"; break;
-	case  5: return "n"; break;
-	case  6: return "o"; break;
-	case  7: return "p"; break;
-	case  8: return "q"; break;
-	case  9: return "slice"; break;
-	case 10: return "frame"; break;
-	case 11: return "s"; break;
-	case 12: return "t"; break;
-	case 13: return "u"; break;
-	case 14: return "v"; break;
-	case 15: return "w"; break;
-	default: error("Invalid dimension!");
-   }
-   return "";
+	update_buf(v->xdim, v->ydim, DIMS, v->dims, v->strs, v->pos, v->flip, v->xzoom, v->yzoom,
+		   v->rgbw, v->rgbh, v->data, v->buf);
 }
+
+
 
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
@@ -454,7 +434,7 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 		char output_name[bufsize];
 		for (unsigned int f = 0; f < v->dims[frame_dim]; f++) {
 			v->pos[frame_dim] = f;
-			update_buf(v);
+			update_buf_view(v);
 
 			draw(v->rgbw, v->rgbh, v->rgbstr, v->rgb,
 				v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
@@ -478,46 +458,6 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 }
 
 
-void update_buf(struct view_s* v)
-{
-	double dpos[DIMS];
-	for (int i = 0; i < DIMS; i++)
-		dpos[i] = v->pos[i];
-
-	dpos[v->xdim] = 0.;
-	dpos[v->ydim] = 0.;
-
-	double dx[DIMS];
-	for (int i = 0; i < DIMS; i++)
-		dx[i] = 0.;
-
-	double dy[DIMS];
-	for (int i = 0; i < DIMS; i++)
-		dy[i] = 0.;
-
-	dx[v->xdim] = 1.;
-	dy[v->ydim] = 1.;
-
-
-	if ((XY == v->flip) || (XO == v->flip)) {
-
-		dpos[v->xdim] = v->dims[v->xdim] - 1;
-		dx[v->xdim] *= -1.;
-	}
-
-	if ((XY == v->flip) || (OY == v->flip)) {
-
-		dpos[v->ydim] = v->dims[v->ydim] - 1;
-		dy[v->ydim] *= -1.;
-	}
-
-	dx[v->xdim] = dx[v->xdim] / v->xzoom;
-	dy[v->ydim] = dy[v->ydim] / v->yzoom;
-
-	resample(v->rgbw, v->rgbh, v->rgbw, v->buf,
-		DIMS, dpos, dx, dy, v->dims, v->strs, v->data);
-}
-
 
 extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
@@ -526,7 +466,7 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	if (v->invalid) {
 
-		update_buf(v);
+		update_buf_view(v);
 
 		v->invalid = false;
 		v->rgb_invalid = true;
@@ -869,102 +809,6 @@ extern gboolean window_clone(GtkWidget *widget, gpointer data)
 	view_clone(v, v->pos);
 
 	return FALSE;
-}
-
-/**
- * Convert flat index to pos
- *
- */
-static void unravel_index(unsigned int D, long pos[D], const long dims[D], long index)
-{
-	for (unsigned int d = 0; d < D; ++d) {
-		if (1 == dims[d])
-			continue;
-		pos[d] = index % dims[d];
-		index /= dims[d];
-	}
-}
-
-
-void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, const long dims[DIMS], const complex float* idata)
-{
-	struct view_s* v = create_view(output_prefix, NULL, dims, idata);
-
-	if ( xdim != ydim ) {
-		v->xdim = xdim;
-		v->ydim = ydim;
-	}
-	v->winlow = windowing[0];
-	v->winhigh = windowing[1];
-	v->xzoom = zoom;
-	v->yzoom = zoom;
-	v->mode = mode;
-	v->flip = flip;
-
-	double max = 0.;
-	for (long j = 0; j < md_calc_size(DIMS, v->dims); j++)
-		if (max < cabsf(v->data[j]))
-			max = cabsf(v->data[j]);
-
-	if (0. == max)
-		max = 1.;
-
-	v->max = max;
-
-	v->rgbw = v->dims[v->xdim] * v->xzoom;
-	v->rgbh = v->dims[v->ydim] * v->yzoom;
-	v->rgbstr = 4 * v->rgbw;
-	v->rgb = realloc(v->rgb, v->rgbh * v->rgbstr);
-
-	v->buf = realloc(v->buf, v->rgbh * v->rgbw * sizeof(complex float));
-
-	v->source = cairo_image_surface_create_for_data(v->rgb,
-							CAIRO_FORMAT_RGB24, v->rgbw, v->rgbh, v->rgbstr);
-
-	// loop over all dims other than xdim and ydim
-	long loopdims[DIMS];
-	unsigned long loopflags = (MD_BIT(v->xdim)|MD_BIT(v->ydim));
-	md_select_dims(DIMS, ~loopflags, loopdims, dims);
-
-	debug_printf(DP_DEBUG3, "flags: %lu\nloopdims: ", loopflags);
-	debug_print_dims(DP_DEBUG3, DIMS, loopdims);
-
-
-
-
-	for (unsigned long d = 0l; d < md_calc_size(DIMS, loopdims); ++d){
-		unravel_index(DIMS, v->pos, loopdims, d);
-		debug_printf(DP_DEBUG3, "\ti: %lu\n\t", d);
-		debug_print_dims(DP_DEBUG3, DIMS, v->pos);
-
-		// Prepare output filename
-		unsigned int bufsize = 255;
-		char name[bufsize];
-		char* cur = name;
-		const char* end = name + bufsize;
-		cur += snprintf(cur, end - cur, "%s", output_prefix);
-		for ( unsigned int i = 0; i < DIMS; i++) {
-			if ( 1 != loopdims[i] ){
-				cur += snprintf(cur, end - cur, "_%s_%04ld", get_spec(i), v->pos[i]);
-			}
-		}
-		cur += snprintf(cur, end - cur, ".png");
-		debug_printf(DP_DEBUG2, "\t%s\n", name);
-
-		update_buf(v);
-
-		draw(v->rgbw, v->rgbh, v->rgbstr, v->rgb,
-		v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
-			v->rgbw, v->buf);
-
-		if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, name))
-			error("Error: writing image file.\n");
-	}
-
-	cairo_surface_destroy(v->source);
-	delete_view(v);
-	free(v->pos);
-	free(v);
 }
 
 
