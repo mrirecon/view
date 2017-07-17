@@ -14,6 +14,8 @@
 
 #include "draw.h"
 
+#include "colormaps.inc"
+
 // multind.h
 #define MD_BIT(x) (1u << (x))
 #define MD_IS_SET(x, y) ((x) & MD_BIT(y))
@@ -39,6 +41,21 @@ static void trans_magnitude(double rgb[3], double a, double b, complex double va
 	rgb[2] *= magn;
 }
 
+static void trans_magnitude_viridis(double rgb[3], double a, double b, complex double value)
+{
+	double magn = window(a, b, cabs(value));
+	// since window returns nonsense (NaN) if a == b, and since casting nonsense to int
+	// and using it as an array subscript is bound to lead to segfaults,
+	// we catch that case here
+	if ( isfinite(magn) ) {
+		int subscript = magn*255.;
+
+		rgb[0] *= viridis[subscript][0];
+		rgb[1] *= viridis[subscript][1];
+		rgb[2] *= viridis[subscript][2];
+	}
+}
+
 static void trans_real(double rgb[3], double a, double b, complex double value)
 {
 	rgb[0] *= window(a, b, +creal(value));
@@ -48,15 +65,38 @@ static void trans_real(double rgb[3], double a, double b, complex double value)
 
 static void trans_phase(double rgb[3], double a, double b, complex double value)
 {
+	UNUSED(a);
+	UNUSED(b);
 	rgb[0] *= (1. + sin(carg(value) + 0. * 2. * M_PI / 3.)) / 2.;
 	rgb[1] *= (1. + sin(carg(value) + 1. * 2. * M_PI / 3.)) / 2.;
 	rgb[2] *= (1. + sin(carg(value) + 2. * 2. * M_PI / 3.)) / 2.;
+}
+
+static void trans_phase_MYGBM(double rgb[3], double a, double b, complex double value)
+{
+	UNUSED(a);
+	UNUSED(b);
+	double arg = carg(value);
+	if (isfinite(arg)) {
+		int subscript = (arg+M_PI)/2./M_PI*255.;
+		assert( (0 <= subscript) && (subscript <=255) );
+	
+		rgb[0] *= cyclic_mygbm[subscript][0];
+		rgb[1] *= cyclic_mygbm[subscript][1];
+		rgb[2] *= cyclic_mygbm[subscript][2];
+	}
 }
 
 static void trans_complex(double rgb[3], double a, double b, complex double value)
 {
 	trans_magnitude(rgb, a, b, value);
 	trans_phase(rgb, a, b, value);
+}
+
+static void trans_complex_MYGBM(double rgb[3], double a, double b, complex double value)
+{
+	trans_magnitude(rgb, a, b, value);
+	trans_phase_MYGBM(rgb, a, b, value);
 }
 
 static void trans_flow(double rgb[3], double a, double b, complex double value)
@@ -156,8 +196,11 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 			switch (mode) {
 
 			case MAGN: trans_magnitude(rgb, winlow, winhigh, val); break;
+			case MAGN_VIRIDS: trans_magnitude_viridis(rgb, winlow, winhigh, val); break;
 			case PHSE: trans_phase(rgb, winlow, winhigh, val); break;
+			case PHSE_MYGBM: trans_phase_MYGBM(rgb, winlow, winhigh, val); break;
 			case CMPL: trans_complex(rgb, winlow, winhigh, val); break;
+			case CMPL_MYGBM: trans_complex_MYGBM(rgb, winlow, winhigh, val); break;
 			case REAL: trans_real(rgb, winlow, winhigh, val); break;
 			case FLOW: trans_flow(rgb, winlow, winhigh, val); break;
 			default: assert(0);
@@ -166,10 +209,76 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 			rgbbuf[y * rgbstr + x * 4 + 0] = 255. * rgb[2];
 			rgbbuf[y * rgbstr + x * 4 + 1] = 255. * rgb[1];
 			rgbbuf[y * rgbstr + x * 4 + 2] = 255. * rgb[0];
-			rgbbuf[y * rgbstr + x * 4 + 3] = 0.;
+			rgbbuf[y * rgbstr + x * 4 + 3] = 255.;
 		}
 	}
 }
 
 
+void update_buf(long xdim, long ydim, int N, const long dims[N],  const long strs[N], const long pos[N],
+		enum flip_t flip, double xzoom, double yzoom,
+		long rgbw, long rgbh, const complex float* data, complex float* buf)
+{
+	double dpos[N];
+	for (int i = 0; i < N; i++)
+		dpos[i] = pos[i];
+
+	dpos[xdim] = 0.;
+	dpos[ydim] = 0.;
+
+	double dx[N];
+	for (int i = 0; i < N; i++)
+		dx[i] = 0.;
+
+	double dy[N];
+	for (int i = 0; i < N; i++)
+		dy[i] = 0.;
+
+	dx[xdim] = 1.;
+	dy[ydim] = 1.;
+
+
+	if ((XY == flip) || (XO == flip)) {
+
+		dpos[xdim] = dims[xdim] - 1;
+		dx[xdim] *= -1.;
+	}
+
+	if ((XY == flip) || (OY == flip)) {
+
+		dpos[ydim] = dims[ydim] - 1;
+		dy[ydim] *= -1.;
+	}
+
+	dx[xdim] = dx[xdim] / xzoom;
+	dy[ydim] = dy[ydim] / yzoom;
+
+	resample(rgbw, rgbh, rgbw, buf,
+		 N, dpos, dx, dy, dims, strs, data);
+}
+
+// Get dimension specifier for filename
+extern char* get_spec(int i)
+{
+	switch(i) {
+		case  0: return "x"; break;
+		case  1: return "y"; break;
+		case  2: return "z"; break;
+		case  3: return "coil"; break;
+		case  4: return "map"; break;
+		case  5: return "n"; break;
+		case  6: return "o"; break;
+		case  7: return "p"; break;
+		case  8: return "q"; break;
+		case  9: return "slice"; break;
+		case 10: return "frame"; break;
+		case 11: return "s"; break;
+		case 12: return "t"; break;
+		case 13: return "u"; break;
+		case 14: return "v"; break;
+		case 15: return "w"; break;
+		default: error("Invalid dimension!");
+	}
+	return "";
+}
 
