@@ -561,9 +561,8 @@ static void delete_view(struct view_s* v)
 }
 
 
-extern gboolean toggle_sync(GtkWidget *widget, GtkToggleButton* button, gpointer data)
+extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 {
-	UNUSED(widget);
 	UNUSED(button);
 	struct view_s* v = data;
 	v->sync = !v->sync;
