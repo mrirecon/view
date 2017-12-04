@@ -63,6 +63,7 @@ struct view_s {
 	double winlow;
 	double phrot;
 	double max;
+	enum interp_t interpolation;
 
 	complex float* buf;
 
@@ -84,6 +85,7 @@ struct view_s {
 	// widgets
 	GtkComboBox* gtk_mode;
 	GtkComboBox* gtk_flip;
+	GtkComboBox* gtk_interp;
 	GtkWidget* gtk_drawingarea;
 	GtkWidget* gtk_viewport;
 	GtkAdjustment* gtk_winlow;
@@ -285,6 +287,7 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 	v->yzoom = zoom;
 
 	v->flip = gtk_combo_box_get_active(v->gtk_flip);
+	v->interpolation = gtk_combo_box_get_active(v->gtk_interp);
 	v->transpose = gtk_toggle_tool_button_get_active(v->gtk_transpose);
 
 	if (v->transpose) {
@@ -344,7 +347,7 @@ extern gboolean window_callback(GtkWidget *widget, gpointer data)
 
 static void update_buf_view(struct view_s* v)
 {
-	update_buf(v->xdim, v->ydim, DIMS, v->dims, v->strs, v->pos, v->flip, v->xzoom, v->yzoom,
+	update_buf(v->xdim, v->ydim, DIMS, v->dims, v->strs, v->pos, v->flip, v->interpolation, v->xzoom, v->yzoom,
 		   v->rgbw, v->rgbh, v->data, v->buf);
 }
 
@@ -581,7 +584,7 @@ static void update_status_bar(struct view_s* v, int x2, int y2)
 	pos[v->xdim] = x2;
 	pos[v->ydim] = y2;
 
-	complex float val = sample(DIMS, pos, v->dims, v->strs, v->data);
+	complex float val = sample(DIMS, pos, v->dims, v->strs, v->interpolation, v->data);
 
 	// FIXME: make sure this matches exactly the pixel
 	char buf[100];
@@ -737,6 +740,9 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 
 	v->gtk_flip = GTK_COMBO_BOX(gtk_builder_get_object(builder, "flip"));
 	gtk_combo_box_set_active(v->gtk_flip, 0);
+
+	v->gtk_interp = GTK_COMBO_BOX(gtk_builder_get_object(builder, "interp"));
+	gtk_combo_box_set_active(v->gtk_interp, 0);
     
 	v->gtk_transpose = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "transpose"));
 	v->gtk_fit = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "fit"));

@@ -24,7 +24,7 @@
 #define CFL_SIZE sizeof(complex float)
 #endif
 
-void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, const long dims[DIMS], const complex float* idata);
+void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], const complex float* idata);
 
 static const char usage_str[] = "<input> <output_prefix>";
 static const char help_str[] = "Export images to png.";
@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
 	enum mode_t mode = MAGN;
 	float zoom =2.f;
 	enum flip_t flip = OO;
+	enum interp_t interpolation = NLINEAR;
 
 	struct opt_s modeopt[] = {
 		OPT_SELECT('M', enum mode_t, &mode, MAGN, 		"magnitude gray (default) "),
@@ -57,6 +58,11 @@ int main(int argc, char* argv[])
 		OPT_SELECT('Z', enum flip_t, &flip, XY, 		"flip XY"),
 	};
 
+	struct opt_s interpopt[] = {
+		OPT_SELECT('L', enum interp_t, &interpolation, NLINEAR, 		"n-linear interpolation"),
+		OPT_SELECT('N', enum interp_t, &interpolation, NEAREST, 		"nearest neighbor interpolation"),
+	};
+
 	const struct opt_s opts[] = {
 		OPT_INT('x', &xdim, "xdim", "output xdim (default: 0) "),
 		OPT_INT('y', &ydim, "ydim", "output ydim (default: 0). If both are zero, first two non-singleton dims are used."),
@@ -65,6 +71,7 @@ int main(int argc, char* argv[])
 		OPT_FLOAT('z', &zoom, "z", "zoom factor (default: 2) "),
 		OPT_SUBOPT('C', "cmap", "colormap. -Ch for help.", ARRAY_SIZE(modeopt), modeopt),
 		OPT_SUBOPT('F', "flip", "flip. -Fh for help.", ARRAY_SIZE(flipopt), flipopt),
+		OPT_SUBOPT('I', "interp", "interp. -Ih for help.", ARRAY_SIZE(interpopt), interpopt),
 		OPT_INT('d', &debug_level, "level", "Debug level"),
 	};
 	cmdline(&argc, argv, 2, 1000, usage_str, help_str, ARRAY_SIZE(opts), opts);
@@ -101,7 +108,7 @@ int main(int argc, char* argv[])
 			*ext = '\0';
 	}
 
-	export_images(output_prefix, xdim, ydim, windowing, zoom, mode, flip, dims, idata);
+	export_images(output_prefix, xdim, ydim, windowing, zoom, mode, flip, interpolation, dims, idata);
 
 
 	unmap_cfl(DIMS, dims, idata);
@@ -126,7 +133,7 @@ static void unravel_index(unsigned int D, long pos[D], const long dims[D], long 
 }
 
 
-void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, const long dims[DIMS], const complex float* idata)
+void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], const complex float* idata)
 {
 
 	if ( xdim == ydim ) {
@@ -190,7 +197,7 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 		cur += snprintf(cur, end - cur, ".png");
 		debug_printf(DP_DEBUG2, "\t%s\n", name);
 
-		update_buf(xdim, ydim, DIMS, dims, strs, pos, flip, zoom, zoom,
+		update_buf(xdim, ydim, DIMS, dims, strs, pos, flip, interpolation, zoom, zoom,
 			   rgbw, rgbh, idata, buf);
 
 		draw(rgbw, rgbh, rgbstr, rgb,
