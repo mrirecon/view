@@ -115,7 +115,7 @@ static void trans_flow(double rgb[3], double a, double b, complex double value)
 // as an extra argument which could save time
 static complex float int_nlinear(int N, const float x[N], const long strs[N], const complex float* in)
 {
- 	return (0 == N) ? in[0]
+	return (0 == N) ? in[0]
 			: (  (1. - x[N - 1]) * int_nlinear(N - 1, x, strs, in + 0)
 		           +       x[N - 1]  * int_nlinear(N - 1, x, strs, in + strs[N - 1]));
 }
