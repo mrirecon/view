@@ -136,8 +136,19 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 
 		if (dims[i] > 1) {
 	
-			div[i] = truncf(pos[i]);
-			float xrem = pos[i] - truncf(pos[i]);
+			float xrem = 0.;
+			// values outside of valid range set to the edge values
+			if (pos[i] < 0.) {
+
+				div[i] = 0.;
+			} else if (pos[i] > (dims[i] - 1)) {
+
+				div[i] = dims[i] - 1;
+			} else {
+
+				div[i] = truncf(pos[i]);
+				xrem = pos[i] - truncf(pos[i]);
+			}
 
 			if (xrem != 0.) {
 
@@ -160,7 +171,12 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 	return int_nlinear(D, rem, strs2, (const complex float*)(((char*)in) + off0));
 }
 
-
+// The idea is the following:
+// samples sit in the middle of their pixels, so for even zoom factors,
+// the original values are between adjacent pixels, with pixels outside
+// of the valid range (negative pos2 and pos2 greater than dim-1) set to the
+// corresponding values. Therefore we need to start the pos2 array at negative
+// positions.
 extern void resample(int X, int Y, long str, complex float* buf,
 	int N, const double pos[N], const double dx[N], const double dy[N], 
 	const long dims[N], const long strs[N], const complex float* in)
@@ -169,9 +185,18 @@ extern void resample(int X, int Y, long str, complex float* buf,
 		for (int y = 0; y < Y; y++) {
 
 			float pos2[N];
-			for (int i = 0; i < N; i++)
-				pos2[i] = pos[i] + x * dx[i] + y * dy[i];
+			for (int i = 0; i < N; i++) {
 
+				// start is only != 0 if dx or dy are != 0.
+				// Further, for negative dx/dy, it needs the same sign.
+				// ....0.......1....	d	(|d| - 1.) / 2.
+				// |---*---|---*---|	1.00 ->	-0.000
+				// |-*-|-*-|-*-|-*-|	0.50 ->	-0.250
+				// |*|*|*|*|*|*|*|*|	0.25 ->	-0.375
+				double start = 	- (dx[i] != 0.) * copysign((fabs(dx[i]) - 1.) / 2., dx[i])
+						- (dy[i] != 0.) * copysign((fabs(dy[i]) - 1.) / 2., dy[i]);
+				pos2[i] = pos[i] + start + x * dx[i] + y * dy[i];
+			}
 			buf[str * y + x] = sample(N, pos2, dims, strs, in);
 		}
 	}
