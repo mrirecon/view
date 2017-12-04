@@ -121,7 +121,17 @@ static complex float int_nlinear(int N, const float x[N], const long strs[N], co
 }
 
 
-complex float sample(int N, const float pos[N], const long dims[N], const long strs[N], const complex float* in)
+static complex float int_nearest(int N, const float x[N], const long strs[N], const complex float* in)
+{
+	size_t offs = 0;
+	for (int i = 0; i < N; ++i)
+		offs += round(x[i]) * strs[i];
+
+	return *(in + offs);
+}
+
+
+complex float sample(int N, const float pos[N], const long dims[N], const long strs[N], enum interp_t interpolation, const complex float* in)
 {
 	float rem[N];
 	int div[N];
@@ -156,8 +166,6 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 				rem[D++] = xrem;
 			}
 
-		//printf("%d\n", div[i]);
-
 			if ((div[i] < 0) || (div[i] >= dims[i]) || ((div[i] >= dims[i] - 1) && (xrem > 0.)))
 				return 0.;
 		}
@@ -168,7 +176,12 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 	for (int i = 0; i < N; i++)
 		off0 += div[i] * strs[i];
 
-	return int_nlinear(D, rem, strs2, (const complex float*)(((char*)in) + off0));
+	switch (interpolation) {
+
+	case NLINEAR: return int_nlinear(D, rem, strs2, (const complex float*)(((char*)in) + off0));
+	case NEAREST: return int_nearest(D, rem, strs2, (const complex float*)(((char*)in) + off0));
+	default: assert(0);
+	}
 }
 
 // The idea is the following:
@@ -179,7 +192,7 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 // positions.
 extern void resample(int X, int Y, long str, complex float* buf,
 	int N, const double pos[N], const double dx[N], const double dy[N], 
-	const long dims[N], const long strs[N], const complex float* in)
+	const long dims[N], const long strs[N], enum interp_t interpolation, const complex float* in)
 {
 	for (int x = 0; x < X; x++) {
 		for (int y = 0; y < Y; y++) {
@@ -197,7 +210,7 @@ extern void resample(int X, int Y, long str, complex float* buf,
 						- (dy[i] != 0.) * copysign((fabs(dy[i]) - 1.) / 2., dy[i]);
 				pos2[i] = pos[i] + start + x * dx[i] + y * dy[i];
 			}
-			buf[str * y + x] = sample(N, pos2, dims, strs, in);
+			buf[str * y + x] = sample(N, pos2, dims, strs, interpolation, in);
 		}
 	}
 }
@@ -241,7 +254,7 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 
 
 void update_buf(long xdim, long ydim, int N, const long dims[N],  const long strs[N], const long pos[N],
-		enum flip_t flip, double xzoom, double yzoom,
+		enum flip_t flip, enum interp_t interpolation, double xzoom, double yzoom,
 		long rgbw, long rgbh, const complex float* data, complex float* buf)
 {
 	double dpos[N];
@@ -279,7 +292,7 @@ void update_buf(long xdim, long ydim, int N, const long dims[N],  const long str
 	dy[ydim] = dy[ydim] / yzoom;
 
 	resample(rgbw, rgbh, rgbw, buf,
-		 N, dpos, dx, dy, dims, strs, data);
+		 N, dpos, dx, dy, dims, strs, interpolation, data);
 }
 
 // Get dimension specifier for filename
