@@ -461,6 +461,42 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 }
 
 
+struct xy_s { float x; float y; };
+
+static struct xy_s pos2screen(const struct view_s* v, /*const+*/float (*pos)[DIMS])
+{
+	float x = (*pos)[v->xdim];
+	float y = (*pos)[v->ydim];
+
+	if ((XY == v->flip) || (XO == v->flip))
+		x = v->dims[v->xdim] - 1 - x;
+
+	if ((XY == v->flip) || (OY == v->flip))
+		y = v->dims[v->ydim] - 1 - y;
+
+	x *= v->xzoom;
+	y *= v->yzoom;
+
+	return (struct xy_s){ x, y };
+}
+
+static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s xy)
+{
+	for (unsigned int i = 0; i < DIMS; i++)
+		(*pos)[i] = v->pos[i];
+
+	float x = xy.x / v->xzoom;
+	float y = xy.y / v->yzoom;
+
+	if ((XY == v->flip) || (XO == v->flip))
+		x = v->dims[v->xdim] - 1 - x;
+
+	if ((XY == v->flip) || (OY == v->flip))
+		y = v->dims[v->ydim] - 1 - y;
+
+	(*pos)[v->xdim] = x;
+	(*pos)[v->ydim] = y;
+}
 
 extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
@@ -574,17 +610,15 @@ extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 }
 
 
-static void update_status_bar(struct view_s* v, int x2, int y2)
+static void update_status_bar(struct view_s* v, /*const*/ float (*pos)[DIMS])
 {
-	float pos[DIMS];
+	int x2 = (*pos)[v->xdim];
+	int y2 = (*pos)[v->ydim];
 
-	for (int i = 0; i < DIMS; i++)
-		pos[i] = v->pos[i];
+	(*pos)[v->xdim] = x2;
+	(*pos)[v->ydim] = y2;
 
-	pos[v->xdim] = x2;
-	pos[v->ydim] = y2;
-
-	complex float val = sample(DIMS, pos, v->dims, v->strs, v->interpolation, v->data);
+	complex float val = sample(DIMS, *pos, v->dims, v->strs, v->interpolation, v->data);
 
 	// FIXME: make sure this matches exactly the pixel
 	char buf[100];
@@ -612,22 +646,21 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 	UNUSED(widget);
 	struct view_s* v = data;
 
-	int y = event->y;
-	int x = event->x;
+	struct xy_s xy = { event->x, event->y };
 
-	int x2 = x / v->xzoom;
-	int y2 = y / v->yzoom;
+	float pos[DIMS];
+	screen2pos(v, &pos, xy);
 
 	if (event->button == GDK_BUTTON_SECONDARY) {
 
-		set_position(v, v->xdim, x2);
-		set_position(v, v->ydim, y2);
+		set_position(v, v->xdim, pos[v->xdim]);
+		set_position(v, v->ydim, pos[v->ydim]);
 
-		update_status_bar(v, x2, y2);
+		update_status_bar(v, &pos);
 
 		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
 			if (v->sync && v2->sync)
-				update_status_bar(v2, x2, y2);
+				update_status_bar(v2, &pos);
 	}
 
 	return FALSE;
