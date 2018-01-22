@@ -1,9 +1,9 @@
-/* Copyright 2015. Martin Uecker.
+/* Copyright 2015-2016. Martin Uecker.
  * All rights reserved. Use of this source code is governed by
  * a BSD-style license which can be found in the LICENSE file.
  *
  * Author:
- *	2015 Martin Uecker <martin.uecker@med.uni-goettingen.de>
+ *	2015-2016 Martin Uecker <martin.uecker@med.uni-goettingen.de>
  */
 
 #include <math.h>
@@ -218,7 +218,7 @@ extern void resample(int X, int Y, long str, complex float* buf,
 
 
 
-extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
+extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4],
 	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf)
 {
@@ -244,10 +244,10 @@ extern void draw(int X, int Y, int rgbstr, unsigned char* rgbbuf,
 			default: assert(0);
 			}
 
-			rgbbuf[y * rgbstr + x * 4 + 0] = 255. * rgb[2];
-			rgbbuf[y * rgbstr + x * 4 + 1] = 255. * rgb[1];
-			rgbbuf[y * rgbstr + x * 4 + 2] = 255. * rgb[0];
-			rgbbuf[y * rgbstr + x * 4 + 3] = 255.;
+			(*rgbbuf)[y][x][0] = 255. * rgb[2];
+			(*rgbbuf)[y][x][1] = 255. * rgb[1];
+			(*rgbbuf)[y][x][2] = 255. * rgb[0];
+			(*rgbbuf)[y][x][3] = 255.;
 		}
 	}
 }
@@ -319,4 +319,62 @@ extern char* get_spec(int i)
 	}
 	return "";
 }
+
+
+
+const char color_white[3] = { 255, 255, 255 };
+const char color_blue[3] = { 255, 0, 0 };
+const char color_red[3] = { 0, 0, 255 };
+
+
+extern void draw_line(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4], float x0, float y0, float x1, float y1, const char (*color)[3])
+{
+	float stepx = x1 - x0;
+	float stepy = y1 - y0;
+
+	float max = 1.44 * sqrtf(powf(stepx, 2.) + powf(stepy, 2.));
+
+	stepx /= max;
+	stepy /= max;
+
+	for (unsigned int i = 0; i < max; i++) {
+
+		int xi = (int)roundf(x0 + i * stepx);
+		int yi = (int)roundf(y0 + i * stepy);
+
+		if ((0 <= xi) && (xi < X) && (0 <= yi) && (yi < Y)) {
+
+			(*rgbbuf)[yi][xi][0] = (*color)[0];
+			(*rgbbuf)[yi][xi][1] = (*color)[1];
+			(*rgbbuf)[yi][xi][2] = (*color)[2];
+		}
+	}
+}
+
+
+extern void draw_grid(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4], const float (*coord)[4][2], int divs, const char (*color)[3])
+{
+	for (int i = 0; i <= divs; i++) {
+		for (int j = 0; j <= divs; j++) {
+
+			float x0 = (*coord)[0][0] + i * ((*coord)[1][0] - (*coord)[0][0]) / divs;
+			float y0 = (*coord)[0][1] + i * ((*coord)[1][1] - (*coord)[0][1]) / divs;
+
+			float x1 = (*coord)[2][0] + i * ((*coord)[3][0] - (*coord)[2][0]) / divs;
+			float y1 = (*coord)[2][1] + i * ((*coord)[3][1] - (*coord)[2][1]) / divs;
+
+			draw_line(X, Y, rgbstr, rgbbuf, x0, y0, x1, y1, color);
+
+			x0 = (*coord)[0][0] + i * ((*coord)[2][0] - (*coord)[0][0]) / divs;
+			y0 = (*coord)[0][1] + i * ((*coord)[2][1] - (*coord)[0][1]) / divs;
+
+			x1 = (*coord)[1][0] + i * ((*coord)[3][0] - (*coord)[1][0]) / divs;
+			y1 = (*coord)[1][1] + i * ((*coord)[3][1] - (*coord)[1][1]) / divs;
+
+			draw_line(X, Y, rgbstr, rgbbuf, x0, y0, x1, y1, color);
+		}
+	}
+}
+
+
 
