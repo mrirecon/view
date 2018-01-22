@@ -46,6 +46,8 @@ struct view_s {
 	struct view_s* prev;
 	bool sync;
 
+	bool cross_hair;
+
 	const char* name;
 
 	// geometry
@@ -426,6 +428,7 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 						"Export",
 						GTK_RESPONSE_ACCEPT,
 						NULL);
+
 	v->chooser = GTK_FILE_CHOOSER(v->dialog);
 	// Outputfolder = Inputfolder
 	gtk_file_chooser_set_current_folder(v->chooser, dirname(dir));
@@ -433,9 +436,12 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 	gint res = gtk_dialog_run (GTK_DIALOG (v->dialog));
 
 	if (res == GTK_RESPONSE_ACCEPT) {
+
 		char *chosen_dir = gtk_file_chooser_get_filename(v->chooser);
 		char output_name[bufsize];
+
 		for (unsigned int f = 0; f < v->dims[frame_dim]; f++) {
+
 			v->pos[frame_dim] = f;
 			update_buf_view(v);
 
@@ -445,12 +451,13 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 
 			char suff[16];
 			snprintf(suff, 16, "/mov-%04d.png", f);
-			strncpy(output_name, chosen_dir, bufsize-16);
+			strncpy(output_name, chosen_dir, bufsize - 16);
 			strncat(output_name, suff, 16);
 
 			if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, output_name))
 				gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
 		}
+
 		g_free(chosen_dir);
 		gtk_entry_set_text(v->gtk_entry, "Movie exported.");
 	}
@@ -524,6 +531,24 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	// add_text(v->source, 3, 3, 10, v->name);
 
+	if (v->cross_hair) {
+
+		float posi[DIMS];
+		for (unsigned int i = 0; i < DIMS; i++)
+			posi[i] = v->pos[i];
+
+		struct xy_s xy = pos2screen(v, &posi);
+
+		draw_line(v->rgbw, v->rgbh, v->rgbstr, (unsigned char (*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
+				0, (int)xy.y, v->rgbw - 1, (int)xy.y, (v->xdim > v->ydim) ? &color_red : &color_blue);
+
+		draw_line(v->rgbw, v->rgbh, v->rgbstr, (unsigned char (*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
+				(int)xy.x, 0, (int)xy.x, v->rgbh - 1, (v->xdim < v->ydim) ? &color_red : &color_blue);
+
+//		float coords[4][2] = { { 0, 0 }, { 100, 0 }, { 0, 100 }, { 100, 100 } };
+//		draw_grid(v->rgbw, v->rgbh, v->rgbstr, (unsigned char (*)[v->rgbw][v->rgbstr / 4][4])v->rgb, &coords, 4, &color_white);
+	}
+
 	cairo_set_source_surface(cr, v->source, 0, 0);
 	cairo_paint(cr);
 	return FALSE;
@@ -548,6 +573,8 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 
 	v->next = v->prev = v;
 	v->sync = true;
+
+	v->cross_hair = false;
 
 	v->name = name;
 	v->max = 1.;
@@ -651,7 +678,17 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 	float pos[DIMS];
 	screen2pos(v, &pos, xy);
 
+	if (event->button == GDK_BUTTON_PRIMARY) {
+
+		v->cross_hair = false;
+
+		v->rgb_invalid = true;
+		update_view(v);
+	}
+
 	if (event->button == GDK_BUTTON_SECONDARY) {
+
+		v->cross_hair = true;
 
 		set_position(v, v->xdim, pos[v->xdim]);
 		set_position(v, v->ydim, pos[v->ydim]);
