@@ -439,7 +439,7 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 			v->pos[frame_dim] = f;
 			update_buf_view(v);
 
-			draw(v->rgbw, v->rgbh, v->rgbstr, v->rgb,
+			draw(v->rgbw, v->rgbh, v->rgbstr, (unsigned char(*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
 				v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
 				v->rgbw, v->buf);
 
@@ -513,7 +513,7 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	if (v->rgb_invalid) {
 
-		draw(v->rgbw, v->rgbh, v->rgbstr, v->rgb,
+		draw(v->rgbw, v->rgbh, v->rgbstr, (unsigned char(*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
 			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
 			v->rgbw, v->buf);
 
