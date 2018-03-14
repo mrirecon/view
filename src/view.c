@@ -513,6 +513,29 @@ static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s x
 
 
 
+static void clear_status_bar(struct view_s* v)
+{
+	char buf = '\0';
+	gtk_entry_set_text(v->gtk_entry, &buf);
+}
+
+
+static void update_status_bar(struct view_s* v, const float (*pos)[DIMS])
+{
+	int x2 = (*pos)[v->xdim];
+	int y2 = (*pos)[v->ydim];
+
+	complex float val = sample(DIMS, *pos, v->dims, v->strs, v->interpolation, v->data);
+
+	// FIXME: make sure this matches exactly the pixel
+	char buf[100];
+	snprintf(buf, 100, "Pos: %03d %03d Magn: %.3e Val: %+.3e%+.3ei Arg: %+.2f", x2, y2,
+			cabsf(val), crealf(val), cimagf(val), cargf(val));
+
+	gtk_entry_set_text(v->gtk_entry, buf);
+}
+
+
 extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
 	UNUSED(widget);
@@ -555,6 +578,19 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 //		float coords[4][2] = { { 0, 0 }, { 100, 0 }, { 0, 100 }, { 100, 100 } };
 //		draw_grid(v->rgbw, v->rgbh, v->rgbstr, (unsigned char (*)[v->rgbw][v->rgbstr / 4][4])v->rgb, &coords, 4, &color_white);
+	}
+
+	if (v->status_bar) {
+
+		float posi[DIMS];
+		for (unsigned int i = 0; i < DIMS; i++)
+			posi[i] = v->pos[i];
+
+		update_status_bar(v, &posi);
+
+		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
+			if (v->sync && v2->sync)
+				update_status_bar(v2, &posi);
 	}
 
 	cairo_set_source_surface(cr, v->source, 0, 0);
@@ -645,28 +681,6 @@ extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 	return FALSE;
 }
 
-static void clear_status_bar(struct view_s* v)
-{
-	char buf = '\0';
-	gtk_entry_set_text(v->gtk_entry, &buf);
-}
-
-
-static void update_status_bar(struct view_s* v, const float (*pos)[DIMS])
-{
-	int x2 = (*pos)[v->xdim];
-	int y2 = (*pos)[v->ydim];
-
-	complex float val = sample(DIMS, *pos, v->dims, v->strs, v->interpolation, v->data);
-
-	// FIXME: make sure this matches exactly the pixel
-	char buf[100];
-	snprintf(buf, 100, "Pos: %03d %03d Magn: %.3e Val: %+.3e%+.3ei Arg: %+.2f", x2, y2,
-			cabsf(val), crealf(val), cimagf(val), cargf(val));
-
-	gtk_entry_set_text(v->gtk_entry, buf);
-}
-
 
 extern void set_position(struct view_s* v, unsigned int dim, unsigned int p)
 {
@@ -708,11 +722,6 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 		set_position(v, v->xdim, pos[v->xdim]);
 		set_position(v, v->ydim, pos[v->ydim]);
 
-		update_status_bar(v, &pos);
-
-		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
-			if (v->sync && v2->sync)
-				update_status_bar(v2, &pos);
 	}
 
 	return FALSE;
