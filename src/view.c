@@ -47,6 +47,7 @@ struct view_s {
 	bool sync;
 
 	bool cross_hair;
+	bool status_bar;
 
 	const char* name;
 
@@ -509,6 +510,8 @@ static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s x
 	(*pos)[v->ydim] = y;
 }
 
+
+
 extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
 	UNUSED(widget);
@@ -579,6 +582,7 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	v->sync = true;
 
 	v->cross_hair = false;
+	v->status_bar = false;
 
 	v->name = name;
 	v->max = 1.;
@@ -640,6 +644,12 @@ extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 	return FALSE;
 }
 
+static void clear_status_bar(struct view_s* v)
+{
+	char buf = '\0';
+	gtk_entry_set_text(v->gtk_entry, &buf);
+}
+
 
 static void update_status_bar(struct view_s* v, /*const*/ float (*pos)[DIMS])
 {
@@ -685,6 +695,8 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 	if (event->button == GDK_BUTTON_PRIMARY) {
 
 		v->cross_hair = false;
+		v->status_bar = false;
+		clear_status_bar(v);
 
 		v->rgb_invalid = true;
 		update_view(v);
@@ -693,6 +705,7 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 	if (event->button == GDK_BUTTON_SECONDARY) {
 
 		v->cross_hair = true;
+		v->status_bar = true;
 
 		set_position(v, v->xdim, pos[v->xdim]);
 		set_position(v, v->ydim, pos[v->ydim]);
