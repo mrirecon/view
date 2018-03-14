@@ -481,6 +481,10 @@ static struct xy_s pos2screen(const struct view_s* v, /*const+*/float (*pos)[DIM
 	if ((XY == v->flip) || (OY == v->flip))
 		y = v->dims[v->ydim] - 1 - y;
 
+	// shift to the center of pixels
+	x += 0.5;
+	y += 0.5;
+
 	x *= v->xzoom;
 	y *= v->yzoom;
 
