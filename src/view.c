@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <complex.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include <libgen.h>
 
@@ -470,7 +471,7 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 
 struct xy_s { float x; float y; };
 
-static struct xy_s pos2screen(const struct view_s* v, /*const+*/float (*pos)[DIMS])
+static struct xy_s pos2screen(const struct view_s* v, const float (*pos)[DIMS])
 {
 	float x = (*pos)[v->xdim];
 	float y = (*pos)[v->ydim];
@@ -492,8 +493,8 @@ static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s x
 	for (unsigned int i = 0; i < DIMS; i++)
 		(*pos)[i] = v->pos[i];
 
-	float x = xy.x / v->xzoom;
-	float y = xy.y / v->yzoom;
+	float x = xy.x / v->xzoom - 0.5;
+	float y = xy.y / v->yzoom - 0.5;
 
 	if ((XY == v->flip) || (XO == v->flip))
 		x = v->dims[v->xdim] - 1 - x;
@@ -501,8 +502,8 @@ static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s x
 	if ((XY == v->flip) || (OY == v->flip))
 		y = v->dims[v->ydim] - 1 - y;
 
-	(*pos)[v->xdim] = x;
-	(*pos)[v->ydim] = y;
+	(*pos)[v->xdim] = roundf(x);
+	(*pos)[v->ydim] = roundf(y);
 }
 
 extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
@@ -637,13 +638,10 @@ extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 }
 
 
-static void update_status_bar(struct view_s* v, /*const*/ float (*pos)[DIMS])
+static void update_status_bar(struct view_s* v, const float (*pos)[DIMS])
 {
 	int x2 = (*pos)[v->xdim];
 	int y2 = (*pos)[v->ydim];
-
-	(*pos)[v->xdim] = x2;
-	(*pos)[v->ydim] = y2;
 
 	complex float val = sample(DIMS, *pos, v->dims, v->strs, v->interpolation, v->data);
 
