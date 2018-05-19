@@ -29,6 +29,7 @@
 #include "misc/debug.h"
 
 #include "draw.h"
+#include "iopts.h"
 
 #include "view.h"
 
@@ -110,6 +111,9 @@ struct view_s {
 	// windowing
 	int lastx;
 	int lasty;
+
+	const long* showDims;
+	struct opt_idx_s iopts;
 };
 
 
@@ -601,17 +605,24 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 
 
-struct view_s* create_view(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* data)
+struct view_s* create_view(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* data, const long showDims[2], const struct opt_idx_s iopts)
 {
 	long sq_dims[2] = { 0 };
 
 	int l = 0;
 
-	for (int i = 0; (i < DIMS) && (l < 2); i++)
-		if (1 != dims[i])
-			sq_dims[l++] = i;
+	// Check if dimensions to display are defined
+	if (showDims[0] != -1 && showDims[1] != -1) {
+		sq_dims[0] = showDims[0];
+		sq_dims[1] = showDims[1];
+	} else { // If not, choose the first two non-empty dimensions
+		for (int i = 0; (i < DIMS) && (l < 2); i++)
+			if (1 != dims[i])
+				sq_dims[l++] = i;
+		assert(2 == l);
+	}
 
-	assert(2 == l);
+
 
 	struct view_s* v = xmalloc(sizeof(struct view_s));
 
@@ -627,7 +638,12 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	v->pos = xmalloc(DIMS * sizeof(long));
 
 	for (int i = 0; i < DIMS; i++)
-		v->pos[i] = (NULL != pos) ? pos[i] : 0;
+			v->pos[i] = (NULL != pos) ? pos[i] : 0;
+
+	if ( iopts.r > 0) {
+		for (int r=0; r<iopts.r; r++)
+			v->pos[iopts.idxs[r].dim] = iopts.idxs[r].idx;
+	}
 
 	v->xdim = sq_dims[0];
 	v->ydim = sq_dims[1];
@@ -804,13 +820,16 @@ extern gboolean window_close(GtkWidget *widget, GdkEvent* event, gpointer data)
 
 
 
-extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x)
+extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x, const long showDims[2], const struct opt_idx_s iopts)
 {
-	struct view_s* v = create_view(name, pos, dims, x);
+	struct view_s* v = create_view(name, pos, dims, x, showDims, iopts);
 
 	GtkBuilder* builder = gtk_builder_new();
 	// gtk_builder_add_from_file(builder, "viewer.ui", NULL);
 	gtk_builder_add_from_string(builder, viewer_gui, -1, NULL);
+
+	v->showDims = showDims;
+	v->iopts = iopts;
 
 	v->gtk_drawingarea = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea1"));
 	v->gtk_viewport = GTK_WIDGET(gtk_builder_get_object(builder, "scrolledwindow1"));
@@ -894,7 +913,7 @@ void window_connect_sync(struct view_s* v, struct view_s* v2)
 
 struct view_s* view_clone(struct view_s* v, const long pos[DIMS])
 {
-	struct view_s* v2 = window_new(v->name, pos, v->dims, v->data);
+	struct view_s* v2 = window_new(v->name, pos, v->dims, v->data, v->showDims, v->iopts);
 
 	window_connect_sync(v, v2);
 

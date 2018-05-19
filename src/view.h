@@ -4,8 +4,9 @@
 #endif
 
 struct view_s;
+struct opt_idx_s;
 
-extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x);
+extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x, const long showDims[3], const struct opt_idx_s iopts);
 
 extern void window_connect_sync(struct view_s* a, struct view_s* b);
 

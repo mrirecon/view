@@ -17,8 +17,12 @@
 #include "misc/misc.h"
 #include "misc/mmio.h"
 #include "misc/opts.h"
+#include "misc/debug.h"
 
+
+#include "iopts.h"
 #include "view.h"
+
 
 
 
@@ -30,8 +34,13 @@ int main(int argc, char* argv[])
 {
 	gtk_init(&argc, &argv);
 
-	const struct opt_s opts[] = {
+	long showDims[2] = { -1, -1};
+	struct opt_idx_s iopts;
+	opt_idx_init(&iopts);
 
+	const struct opt_s opts[] = {
+		OPT_VEC2('d', &showDims, "x:y", "Selected startup dimensions"),
+		{ 'i', true, opt_idx, &iopts, "\tdim:idx\t Other startup dimensions" },
 	};
 
 	cmdline(&argc, argv, 1, 100, usage_str, help_str, ARRAY_SIZE(opts), opts);
@@ -63,7 +72,7 @@ int main(int argc, char* argv[])
 
 
 		// FIXME: we never delete them
-		struct view_s* v2 = window_new(argv[i], NULL, dims, x);
+		struct view_s* v2 = window_new(argv[i], NULL, dims, x, showDims, iopts);
 
 		// If multiple files are passed on the commandline, add them to window
 		// list. This enables sync of windowing and so on...
