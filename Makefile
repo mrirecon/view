@@ -49,7 +49,7 @@ src/viewer.inc: src/viewer.ui
 view:	src/main.c src/view.[ch] src/draw.[ch] src/viewer.inc
 	$(CC) $(CFLAGS) $(EXPDYN) -o view -I$(TOOLBOX_INC) `pkg-config --cflags gtk+-3.0` src/main.c src/view.c src/draw.c `pkg-config --libs gtk+-3.0` $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libnum.a -lm -lpng
 
-cfl2png:	src/cfl2png.c src/view.[ch] src/draw.[ch] src/viewer.inc
+cfl2png:	src/cfl2png.c src/draw.[ch]
 	$(CC) $(CFLAGS) $(EXPDYN) -o cfl2png -I$(TOOLBOX_INC) src/cfl2png.c src/draw.c $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libnum.a -lm -lpng
 
 install:
