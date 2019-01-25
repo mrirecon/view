@@ -86,6 +86,10 @@ struct view_s {
 	long strs[DIMS];
 	const complex float* data;
 
+	// geometry
+	unsigned long geom_flags;
+	const float (*geom)[3][3];
+
 	// widgets
 	GtkComboBox* gtk_mode;
 	GtkComboBox* gtk_flip;
@@ -235,6 +239,14 @@ extern void view_refresh(struct view_s* v)
 
 	update_view(v);
 }
+
+
+extern void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom)[3][3])
+{
+	v->geom_flags = flags;
+	v->geom = geom;
+}
+
 
 extern gboolean refresh_callback(GtkWidget *widget, gpointer data)
 {
@@ -648,6 +660,9 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	md_copy_dims(DIMS, v->dims, dims);
 	md_calc_strides(DIMS, v->strs, dims, sizeof(complex float));
 	v->data = data;
+
+	v->geom_flags = 0ul;
+	v->geom = NULL;
 
 	v->winlow = 0.;
 	v->winhigh = 1.;
