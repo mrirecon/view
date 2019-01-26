@@ -89,6 +89,7 @@ struct view_s {
 	// geometry
 	unsigned long geom_flags;
 	const float (*geom)[3][3];
+	const float (*geom_current)[3][3];
 
 	// widgets
 	GtkComboBox* gtk_mode;
@@ -146,6 +147,24 @@ static void add_text(cairo_surface_t* surface, int x, int y, int size, const cha
 }
 
 
+extern void update_geom(struct view_s* v)
+{
+	if (NULL == v->geom)
+		return;
+
+	long dims[DIMS];
+	md_select_dims(DIMS, v->geom_flags, dims, v->dims);
+
+	long strs[DIMS];
+	md_calc_strides(DIMS, strs, dims, 1);
+
+	v->geom_current = &v->geom[md_calc_offset(DIMS, strs, v->pos)];
+
+	printf("%f %f %f %f %f %f %f %f %f\n",
+		(*v->geom_current)[0][0], (*v->geom_current)[0][1], (*v->geom_current)[0][2],
+		(*v->geom_current)[1][0], (*v->geom_current)[1][1], (*v->geom_current)[1][2],
+		(*v->geom_current)[2][0], (*v->geom_current)[2][1], (*v->geom_current)[2][2]);
+}
 
 
 extern gboolean update_view(struct view_s* v)
@@ -245,6 +264,9 @@ extern void view_add_geometry(struct view_s* v, unsigned long flags, const float
 {
 	v->geom_flags = flags;
 	v->geom = geom;
+	v->geom_current = NULL;
+
+	update_geom(v);
 }
 
 
@@ -330,6 +352,7 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 
 	v->invalid = true;
 
+	update_geom(v);
 	update_view(v);
 
 	return FALSE;
@@ -663,6 +686,7 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 
 	v->geom_flags = 0ul;
 	v->geom = NULL;
+	v->geom_current = NULL;
 
 	v->winlow = 0.;
 	v->winhigh = 1.;
