@@ -66,6 +66,7 @@ static void trans_phase(double rgb[3], double a, double b, complex double value)
 {
 	UNUSED(a);
 	UNUSED(b);
+
 	rgb[0] *= (1. + sin(carg(value) + 0. * 2. * M_PI / 3.)) / 2.;
 	rgb[1] *= (1. + sin(carg(value) + 1. * 2. * M_PI / 3.)) / 2.;
 	rgb[2] *= (1. + sin(carg(value) + 2. * 2. * M_PI / 3.)) / 2.;
@@ -75,10 +76,14 @@ static void trans_phase_MYGBM(double rgb[3], double a, double b, complex double 
 {
 	UNUSED(a);
 	UNUSED(b);
+
 	double arg = carg(value);
+
 	if (isfinite(arg)) {
-		int subscript = (arg+M_PI)/2./M_PI*255.;
-		assert( (0 <= subscript) && (subscript <=255) );
+
+		int subscript = (arg + M_PI) / 2. / M_PI * 255.;
+
+		assert((0 <= subscript) && (subscript <= 255));
 	
 		rgb[0] *= cyclic_mygbm[subscript][0];
 		rgb[1] *= cyclic_mygbm[subscript][1];
@@ -123,6 +128,7 @@ static complex float int_nlinear(int N, const float x[N], const long strs[N], co
 static complex float int_nearest(int N, const float x[N], const long strs[N], const complex float* in)
 {
 	size_t offs = 0;
+
 	for (int i = 0; i < N; ++i)
 		offs += round(x[i]) * strs[i];
 
@@ -146,13 +152,17 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 		if (dims[i] > 1) {
 	
 			float xrem = 0.;
+
 			// values outside of valid range set to the edge values
 			if (pos[i] < 0.) {
 
 				div[i] = 0.;
-			} else if (pos[i] > (dims[i] - 1)) {
+
+			} else
+			if (pos[i] > (dims[i] - 1)) {
 
 				div[i] = dims[i] - 1;
+
 			} else {
 
 				div[i] = truncf(pos[i]);
@@ -177,18 +187,26 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 
 	switch (interpolation) {
 
-	case NLINEAR: return int_nlinear(D, rem, strs2, (const complex float*)(((char*)in) + off0));
-	case NEAREST: return int_nearest(D, rem, strs2, (const complex float*)(((char*)in) + off0));
-	default: assert(0);
+	case NLINEAR:
+		return int_nlinear(D, rem, strs2, (const complex float*)(((char*)in) + off0));
+
+	case NEAREST:
+		return int_nearest(D, rem, strs2, (const complex float*)(((char*)in) + off0));
+
+	default:
+		assert(0);
 	}
 }
 
-// The idea is the following:
-// samples sit in the middle of their pixels, so for even zoom factors,
-// the original values are between adjacent pixels, with pixels outside
-// of the valid range (negative pos2 and pos2 greater than dim-1) set to the
-// corresponding values. Therefore we need to start the pos2 array at negative
-// positions.
+
+/* The idea is the following:
+ * samples sit in the middle of their pixels, so for even zoom factors,
+ * the original values are between adjacent pixels, with pixels outside
+ * of the valid range (negative pos2 and pos2 greater than dim-1) set to the
+ * corresponding values. Therefore we need to start the pos2 array at negative
+ * positions.
+ **/
+
 extern void resample(int X, int Y, long str, complex float* buf,
 	int N, const double pos[N], const double dx[N], const double dy[N], 
 	const long dims[N], const long strs[N], enum interp_t interpolation, const complex float* in)
@@ -197,18 +215,23 @@ extern void resample(int X, int Y, long str, complex float* buf,
 		for (int y = 0; y < Y; y++) {
 
 			float pos2[N];
+
 			for (int i = 0; i < N; i++) {
 
-				// start is only != 0 if dx or dy are != 0.
-				// Further, for negative dx/dy, it needs the same sign.
-				// ....0.......1....	d	(|d| - 1.) / 2.
-				// |---*---|---*---|	1.00 ->	-0.000
-				// |-*-|-*-|-*-|-*-|	0.50 ->	-0.250
-				// |*|*|*|*|*|*|*|*|	0.25 ->	-0.375
+				/* start is only != 0 if dx or dy are != 0.
+				 * Further, for negative dx/dy, it needs the same sign.
+				 * ....0.......1....	d	(|d| - 1.) / 2.
+				 * |---*---|---*---|	1.00 ->	-0.000
+				 * |-*-|-*-|-*-|-*-|	0.50 ->	-0.250
+				 * |*|*|*|*|*|*|*|*|	0.25 ->	-0.375
+				 **/
+
 				double start = 	- (dx[i] != 0.) * copysign((fabs(dx[i]) - 1.) / 2., dx[i])
 						- (dy[i] != 0.) * copysign((fabs(dy[i]) - 1.) / 2., dy[i]);
+
 				pos2[i] = pos[i] + start + x * dx[i] + y * dy[i];
 			}
+
 			buf[str * y + x] = sample(N, pos2, dims, strs, interpolation, in);
 		}
 	}
@@ -297,7 +320,8 @@ void update_buf(long xdim, long ydim, int N, const long dims[N],  const long str
 // Get dimension specifier for filename
 extern char* get_spec(int i)
 {
-	switch(i) {
+	switch (i) {
+
 		case  0: return "x"; break;
 		case  1: return "y"; break;
 		case  2: return "z"; break;
@@ -314,6 +338,7 @@ extern char* get_spec(int i)
 		case 13: return "u"; break;
 		case 14: return "v"; break;
 		case 15: return "w"; break;
+
 		default: error("Invalid dimension!");
 	}
 	return "";
