@@ -317,33 +317,6 @@ void update_buf(long xdim, long ydim, int N, const long dims[N],  const long str
 		 N, dpos, dx, dy, dims, strs, interpolation, data);
 }
 
-// Get dimension specifier for filename
-extern char* get_spec(int i)
-{
-	switch (i) {
-
-		case  0: return "x"; break;
-		case  1: return "y"; break;
-		case  2: return "z"; break;
-		case  3: return "coil"; break;
-		case  4: return "map"; break;
-		case  5: return "n"; break;
-		case  6: return "o"; break;
-		case  7: return "p"; break;
-		case  8: return "q"; break;
-		case  9: return "slice"; break;
-		case 10: return "frame"; break;
-		case 11: return "s"; break;
-		case 12: return "t"; break;
-		case 13: return "u"; break;
-		case 14: return "v"; break;
-		case 15: return "w"; break;
-
-		default: error("Invalid dimension!");
-	}
-	return "";
-}
-
 
 
 const char color_white[3] = { 255, 255, 255 };

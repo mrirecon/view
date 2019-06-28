@@ -391,6 +391,7 @@ static void update_buf_view(struct view_s* v)
 }
 
 
+static const char* spec = "xyzcmnopqsfrtuvw";
 
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
@@ -404,14 +405,15 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 	char* cur = name;
 	const char* end = name + bufsize;
 
-	cur += snprintf(cur, end - cur, "%s", v->name);
+	cur += snprintf(cur, end - cur, "%s_", v->name);
 
 	char dir[bufsize];
 	strncpy(dir, v->name, bufsize);
 
 	for (int i = 0; i < DIMS; i++)
 		if ((v->dims[i] != 1) && (i != v->xdim) && (i != v->ydim))
-			cur += snprintf(cur, end - cur, "_%s_%04ld", get_spec(i), v->pos[i]);
+			cur += snprintf(cur, end - cur, "%c%04ld", spec[i], v->pos[i]);
+
 
 	cur += snprintf(cur, end - cur, ".png");
 

@@ -19,8 +19,6 @@ extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4
 extern void update_buf(long xdim, long ydim, int N, const long dims[N],  const long strs[N], const long pos[N], enum flip_t flip, enum interp_t interpolation, double xzoom, double yzoom,
 		long rgbw, long rgbh, const complex float* data, complex float* buf);
 
-extern char* get_spec(int i);
-
 extern void draw_line(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4], float x0, float y0, float x1, float y1, const char (*color)[3]);
 extern void draw_grid(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4], const float (*coord)[4][2], int divs, const char (*color)[3]);
 
