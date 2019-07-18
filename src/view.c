@@ -819,13 +819,14 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 	v->gtk_winhigh = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "winhigh"));
 
 	v->gtk_entry = GTK_ENTRY(gtk_builder_get_object(builder, "entry"));
+#if 0
 	PangoFontDescription* desc = pango_font_description_new();
 	pango_font_description_set_family(desc, "mono");
 	pango_font_description_set_weight(desc, PANGO_WEIGHT_BOLD);
 	pango_font_description_set_absolute_size(desc, 10 * PANGO_SCALE);
 	gtk_widget_override_font(GTK_WIDGET(v->gtk_entry), desc);
 	pango_font_description_free(desc);
-
+#endif
 	v->gtk_zoom = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "zoom"));
 	v->gtk_aniso = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "aniso"));
 
