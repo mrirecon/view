@@ -72,6 +72,9 @@
       <row>
         <col id="0" translatable="yes">NEAREST</col>
       </row>
+      <row>
+        <col id="0" translatable="yes">LIINCO</col>
+      </row>
     </data>
   </object>
   <object class="GtkAdjustment" id="pos00">

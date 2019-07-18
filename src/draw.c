@@ -136,12 +136,19 @@ static complex float int_nearest(int N, const float x[N], const long strs[N], co
 }
 
 
+static complex float lic_sample(int N, const float pos[N], const long dims[N], const long strs[N], const complex float* in);
+
 complex float sample(int N, const float pos[N], const long dims[N], const long strs[N], enum interp_t interpolation, const complex float* in)
 {
+	if (LIINCO == interpolation)
+		return lic_sample(N, pos, dims, strs, in);
+
+
 	float rem[N];
 	int div[N];
 	int D = 0;
 	long strs2[N];
+
 
 	// 0 1. [0 1] dims 2
 	for (int i = 0; i < N; i++) {
@@ -199,6 +206,78 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 }
 
 
+static complex float lic_hash(int p0, int p1)
+{
+	p0 += 12345;
+	p0 *= 2654435761U;
+	p0 += p1;
+	p0 += 12345;
+	p0 *= 2654435761U;
+	p0 ^= p0 >> 13;
+	p0 *= 2654435761U;
+	p0 ^= p0 >> 17;
+	p0 *= 2654435761U;
+
+	return (1. * (p0 % 256) + 1.i * ((p0 / 256) % 256)) / 256.;
+}
+
+// line integral convolution
+
+complex float lic_sample(int N, const float pos[N], const long dims[N], const long strs[N], const complex float* in)
+{
+	int L = 9;
+	float os = 3.;
+
+	assert(N >= 2);
+	assert(1 < dims[0]);
+	assert(1 < dims[1]);
+
+	complex float out = 0.;
+
+	float pos1[N];
+
+	complex float val = sample(N, pos1, dims, strs, NLINEAR, in);
+
+	for (int i = 0; i < N; i++)
+		pos1[i] = pos[i];
+
+	for (int i = 0; i < L; i++) {
+
+		complex float a = sample(N, pos1, dims, strs, NLINEAR, in);
+
+		a /= cabsf(a);
+
+		pos1[0] += crealf(a) / os;
+		pos1[1] += cimagf(a) / os;
+
+		int p0 = (int)(os * pos1[0]);
+		int p1 = (int)(os * pos1[1]);
+
+		out += lic_hash(p0, p1);
+	}
+
+	for (int i = 0; i < N; i++)
+		pos1[i] = pos[i];
+
+	for (int i = 0; i < L; i++) {
+
+		complex float a = sample(N, pos1, dims, strs, NLINEAR, in);
+
+		a /= cabsf(a);
+
+		pos1[0] -= crealf(a) / os;
+		pos1[1] -= cimagf(a) / os;
+
+		int p0 = (int)(os * pos1[0]);
+		int p1 = (int)(os * pos1[1]);
+
+		out += lic_hash(p0, p1);
+	}
+
+	return out * cabsf(val);
+}
+
+
 /* The idea is the following:
  * samples sit in the middle of their pixels, so for even zoom factors,
  * the original values are between adjacent pixels, with pixels outside
@@ -236,6 +315,8 @@ extern void resample(int X, int Y, long str, complex float* buf,
 		}
 	}
 }
+
+
 
 
 
@@ -316,7 +397,6 @@ void update_buf(long xdim, long ydim, int N, const long dims[N],  const long str
 	resample(rgbw, rgbh, rgbw, buf,
 		 N, dpos, dx, dy, dims, strs, interpolation, data);
 }
-
 
 
 const char color_white[3] = { 255, 255, 255 };

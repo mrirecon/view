@@ -4,7 +4,7 @@
 
 enum mode_t { MAGN, MAGN_VIRIDS, CMPL, CMPL_MYGBM, PHSE, PHSE_MYGBM, REAL, FLOW };
 enum flip_t { OO, XO, OY, XY };
-enum interp_t { NLINEAR, NEAREST };
+enum interp_t { NLINEAR, NEAREST, LIINCO };
 
 extern complex float sample(int N, const float pos[N], const long dims[N], const long strs[N], enum interp_t interpolation, const complex float* in);
 
