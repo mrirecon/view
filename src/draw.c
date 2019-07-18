@@ -29,6 +29,9 @@ static double clamp(double a, double b, double x)
 
 static double window(double a, double b, double x)
 {
+	if (a == b)
+		return (0. == x) ? 0. : 1.;
+
 	return clamp(0., 1., (x - a) / (b - a));
 }
 
@@ -44,16 +47,12 @@ static void trans_magnitude(double rgb[3], double a, double b, complex double va
 static void trans_magnitude_viridis(double rgb[3], double a, double b, complex double value)
 {
 	double magn = window(a, b, cabs(value));
-	// since window returns nonsense (NaN) if a == b, and since casting nonsense to int
-	// and using it as an array subscript is bound to lead to segfaults,
-	// we catch that case here
-	if ( isfinite(magn) ) {
-		int subscript = magn*255.;
 
-		rgb[0] *= viridis[subscript][0];
-		rgb[1] *= viridis[subscript][1];
-		rgb[2] *= viridis[subscript][2];
-	}
+	int subscript = magn * 255.;
+
+	rgb[0] *= viridis[subscript][0];
+	rgb[1] *= viridis[subscript][1];
+	rgb[2] *= viridis[subscript][2];
 }
 
 static void trans_real(double rgb[3], double a, double b, complex double value)
