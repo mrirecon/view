@@ -1,5 +1,6 @@
 
 #include <complex.h>
+#include <stdbool.h>
 
 
 enum mode_t { MAGN, MAGN_VIRIDS, CMPL, CMPL_MYGBM, PHSE, PHSE_MYGBM, REAL, FLOW };
@@ -16,7 +17,12 @@ extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4
 	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf);
 
-extern void update_buf(long xdim, long ydim, int N, const long dims[N],  const long strs[N], const long pos[N], enum flip_t flip, enum interp_t interpolation, double xzoom, double yzoom,
+extern void draw_plot(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4],
+	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
+	long str, const complex float* buf);
+
+extern void update_buf(long xdim, long ydim, int N, const long dims[N],  const long strs[N], const long pos[N],
+		enum flip_t flip, enum interp_t interpolation, double xzoom, double yzoom, bool plot,
 		long rgbw, long rgbh, const complex float* data, complex float* buf);
 
 extern void draw_line(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4], float x0, float y0, float x1, float y1, const char (*color)[3]);

@@ -216,7 +216,8 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 
 		debug_printf(DP_DEBUG2, "\t%s\n", name);
 
-		update_buf(xdim, ydim, DIMS, dims, strs, pos, flip, interpolation, zoom, zoom,
+		update_buf(xdim, ydim, DIMS, dims, strs, pos,
+			   flip, interpolation, zoom, zoom, false,
 			   rgbw, rgbh, idata, buf);
 
 		draw(rgbw, rgbh, rgbstr, (unsigned char(*)[rgbw][rgbstr / 4][4])rgb,

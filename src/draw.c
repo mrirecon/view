@@ -12,6 +12,8 @@
 
 #include "misc/misc.h"
 
+#include "geom/draw.h"
+
 #include "draw.h"
 
 #include "colormaps.inc"
@@ -356,16 +358,21 @@ extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4
 }
 
 
-void update_buf(long xdim, long ydim, int N, const long dims[N],  const long strs[N], const long pos[N],
-		enum flip_t flip, enum interp_t interpolation, double xzoom, double yzoom,
+void update_buf(long xdim, long ydim, int N, const long dims[N], const long strs[N], const long pos[N],
+		enum flip_t flip, enum interp_t interpolation, double xzoom, double yzoom, bool plot,
 		long rgbw, long rgbh, const complex float* data, complex float* buf)
 {
+	if (plot)
+		rgbh = 1;
+
 	double dpos[N];
 	for (int i = 0; i < N; i++)
 		dpos[i] = pos[i];
 
 	dpos[xdim] = 0.;
-	dpos[ydim] = 0.;
+
+	if (!plot)
+		dpos[ydim] = 0.;
 
 	double dx[N];
 	for (int i = 0; i < N; i++)
@@ -376,7 +383,9 @@ void update_buf(long xdim, long ydim, int N, const long dims[N],  const long str
 		dy[i] = 0.;
 
 	dx[xdim] = 1.;
-	dy[ydim] = 1.;
+
+	if (!plot)
+		dy[ydim] = 1.;
 
 
 	if ((XY == flip) || (XO == flip)) {
@@ -387,8 +396,11 @@ void update_buf(long xdim, long ydim, int N, const long dims[N],  const long str
 
 	if ((XY == flip) || (OY == flip)) {
 
-		dpos[ydim] = dims[ydim] - 1;
-		dy[ydim] *= -1.;
+		if (!plot) {
+
+			dpos[ydim] = dims[ydim] - 1;
+			dy[ydim] *= -1.;
+		}
 	}
 
 	dx[xdim] = dx[xdim] / xzoom;
@@ -406,26 +418,9 @@ const char color_red[3] = { 0, 0, 255 };
 
 extern void draw_line(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4], float x0, float y0, float x1, float y1, const char (*color)[3])
 {
-	float stepx = x1 - x0;
-	float stepy = y1 - y0;
+	unsigned char color2[4] = { (*color)[0], (*color)[1], (*color)[2], 1 };
 
-	float max = 1.44 * sqrtf(powf(stepx, 2.) + powf(stepy, 2.));
-
-	stepx /= max;
-	stepy /= max;
-
-	for (unsigned int i = 0; i < max; i++) {
-
-		int xi = (int)roundf(x0 + i * stepx);
-		int yi = (int)roundf(y0 + i * stepy);
-
-		if ((0 <= xi) && (xi < X) && (0 <= yi) && (yi < Y)) {
-
-			(*rgbbuf)[yi][xi][0] = (*color)[0];
-			(*rgbbuf)[yi][xi][1] = (*color)[1];
-			(*rgbbuf)[yi][xi][2] = (*color)[2];
-		}
-	}
+	bresenham_rgba(Y, X, rgbbuf, &color2, y0, x0, y1, x1);
 }
 
 
@@ -454,4 +449,57 @@ extern void draw_grid(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbst
 }
 
 
+
+extern void draw_plot(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4],
+	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
+	long str, const complex float* buf)
+{
+	unsigned char bg[4] = { 255, 255, 255, 0 };
+	unsigned char half[4] = { 163, 163, 163, 255 };
+
+	assert(X == rgbstr / 4);
+	assert(X == str);
+
+	for (int i = 0; i < X; i++)
+		for (int j = 0; j < Y; j++)
+			for (int c = 0; c < 4; c++)
+				(*rgbbuf)[j][i][c] = bg[c];
+
+
+	for (int i = 1; i < 10; i++) {
+
+		bresenham_rgba(Y, X, rgbbuf, &half, 0, i * (X / 10), Y - 1, i * (X / 10));
+		bresenham_rgba(Y, X, rgbbuf, &half, i * (Y / 10), 0, i * (Y / 10), X - 1);
+	}
+
+	unsigned char colorr[4] = { 0, 0, 0, 255 };
+	unsigned char colori[4] = { 255, 255, 0, 255 };
+
+	for (int x = 0; x < X - 1; x++) {
+
+		float trafo(complex float val)
+		{
+			complex float v2 = scale * val * cexpf(1.i * phrot);
+
+			return window(winlow, winhigh, crealf(v2))
+				- window(winlow, winhigh, -crealf(v2));
+		}
+
+		float rx0 = (float)(x + 0);
+		float ry0 = Y / 2 * (1. - trafo(buf[x + 0]));
+
+		float rx1 = (float)(x + 1);
+		float ry1 = Y / 2 * (1. - trafo(buf[x + 1]));
+
+		xiaolin_wu_rgba(Y, X, rgbbuf, &colorr, ry0, rx0, ry1, rx1);
+
+		float ix0 = (float)(x + 0);
+		float iy0 = Y / 2 * (1. - trafo(1.i * buf[x + 0]));
+
+		float ix1 = (float)(x + 1);
+		float iy1 = Y / 2 * (1. - trafo(1.i * buf[x + 1]));
+
+		xiaolin_wu_rgba(Y, X, rgbbuf, &colori, iy0, ix0, iy1, ix1);
+	}
+}
 

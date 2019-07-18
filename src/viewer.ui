@@ -380,6 +380,20 @@
                 <property name="expand">False</property>
                 <property name="homogeneous">True</property>
               </packing>
+	    </child>
+	    <child>
+              <object class="GtkToggleToolButton" id="toolbutton16">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">plot</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-connect</property>
+                <signal name="clicked" handler="toggle_plot" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
             </child>
           </object>
           <packing>

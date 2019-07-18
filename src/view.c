@@ -62,6 +62,7 @@ struct view_s {
 	bool transpose;
 
 	// representation
+	bool plot;
 	enum mode_t mode;
 	double winhigh;
 	double winlow;
@@ -386,8 +387,9 @@ extern gboolean window_callback(GtkWidget *widget, gpointer data)
 
 static void update_buf_view(struct view_s* v)
 {
-	update_buf(v->xdim, v->ydim, DIMS, v->dims, v->strs, v->pos, v->flip, v->interpolation, v->xzoom, v->yzoom,
-		   v->rgbw, v->rgbh, v->data, v->buf);
+	update_buf(v->xdim, v->ydim, DIMS, v->dims, v->strs, v->pos,
+		v->flip, v->interpolation, v->xzoom, v->yzoom, v->plot,
+		v->rgbw, v->rgbh, v->data, v->buf);
 }
 
 
@@ -532,6 +534,9 @@ static struct xy_s pos2screen(const struct view_s* v, const float (*pos)[DIMS])
 	x *= v->xzoom;
 	y *= v->yzoom;
 
+	if (v->plot)
+		y = v->rgbh / 2;
+
 	return (struct xy_s){ x, y };
 }
 
@@ -550,7 +555,9 @@ static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s x
 		y = v->dims[v->ydim] - 1 - y;
 
 	(*pos)[v->xdim] = roundf(x);
-	(*pos)[v->ydim] = roundf(y);
+
+	if (!v->plot)
+		(*pos)[v->ydim] = roundf(y);
 }
 
 
@@ -593,10 +600,10 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	if (v->rgb_invalid) {
 
-		draw(v->rgbw, v->rgbh, v->rgbstr, (unsigned char(*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
+		(v->plot ? draw_plot : draw)(v->rgbw, v->rgbh, v->rgbstr,
+			(unsigned char(*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
 			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
 			v->rgbw, v->buf);
-
 
 		v->rgb_invalid = false;
 	}
@@ -674,6 +681,8 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	v->xdim = sq_dims[0];
 	v->ydim = sq_dims[1];
 
+	v->plot = false;
+
 	v->xzoom = 2.;
 	v->yzoom = 2.;
 
@@ -728,6 +737,22 @@ extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 }
 
 
+extern gboolean toggle_plot(GtkToggleButton* button, gpointer data)
+{
+	UNUSED(button);
+	struct view_s* v = data;
+	v->plot = !v->plot;
+
+	gtk_widget_set_sensitive(GTK_WIDGET(v->gtk_mode),
+		v->plot ? FALSE : TRUE);
+
+	v->invalid = true;
+	update_view(v);
+
+	return FALSE;
+}
+
+
 extern void set_position(struct view_s* v, unsigned int dim, unsigned int p)
 {
 	v->pos[dim] = p;
@@ -767,7 +792,6 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 
 		set_position(v, v->xdim, pos[v->xdim]);
 		set_position(v, v->ydim, pos[v->ydim]);
-
 	}
 
 	return FALSE;
