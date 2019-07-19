@@ -47,6 +47,7 @@ struct view_s {
 	struct view_s* next;
 	struct view_s* prev;
 	bool sync;
+	bool loop;
 
 	bool cross_hair;
 	bool status_bar;
@@ -256,6 +257,10 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 	for (int j = 0; j < DIMS; j++) {
 
 		v->pos[j] = gtk_adjustment_get_value(v->gtk_posall[j]);
+		if (v->loop) {
+			v->pos[j] = v->pos[j] % v->dims[j];
+			gtk_adjustment_set_value(v->gtk_posall[j], v->pos[j]);			
+		}
 		bool check = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[j]));
 
 		if (!check)
@@ -628,6 +633,7 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 
 	v->next = v->prev = v;
 	v->sync = true;
+	v->loop = false;
 
 	v->cross_hair = false;
 	v->status_bar = false;
@@ -696,6 +702,25 @@ extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 
 	return FALSE;
 }
+
+extern gboolean toggle_loop(GtkToggleButton* button, gpointer data)
+{
+	UNUSED(button);
+	struct view_s* v = data;
+	v->loop = !v->loop;
+	
+	for (int j = 0; j < DIMS; j++) {
+	
+		if (v->loop && v->dims[j] > 1)
+				gtk_adjustment_set_upper(v->gtk_posall[j], v->dims[j] * 100);				
+		else 
+			gtk_adjustment_set_upper(v->gtk_posall[j], v->dims[j] - 1);
+		
+	}
+	
+	return FALSE;
+}
+
 
 
 extern void set_position(struct view_s* v, unsigned int dim, unsigned int p)
@@ -867,8 +892,14 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 		char pname[10];
 		snprintf(pname, 10, "pos%02d", j);
 		v->gtk_posall[j] = GTK_ADJUSTMENT(gtk_builder_get_object(builder, pname));
-		gtk_adjustment_set_upper(v->gtk_posall[j], v->dims[j] - 1);
-		gtk_adjustment_set_value(v->gtk_posall[j], v->pos[j]);
+		
+		
+		if( v->dims[j] == 1 || !v->loop)
+			gtk_adjustment_set_upper(v->gtk_posall[j], v->dims[j] - 1);
+		else 
+			gtk_adjustment_set_upper(v->gtk_posall[j], v->dims[j] * 100); // Enable loops
+		
+		gtk_adjustment_set_value(v->gtk_posall[j], v->pos[j] % v->dims[j]);
 
 		snprintf(pname, 10, "check%02d", j);
 		v->gtk_checkall[j] = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, pname));
