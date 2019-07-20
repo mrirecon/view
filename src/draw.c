@@ -303,17 +303,17 @@ extern char* get_spec(int i)
 		case  2: return "z"; break;
 		case  3: return "coil"; break;
 		case  4: return "map"; break;
-		case  5: return "n"; break;
-		case  6: return "o"; break;
-		case  7: return "p"; break;
-		case  8: return "q"; break;
-		case  9: return "slice"; break;
+		case  5: return "te"; break;
+		case  6: return "coeff"; break;
+		case  7: return "coeff2"; break;
+		case  8: return "iter"; break;
+		case  9: return "cshift"; break;
 		case 10: return "frame"; break;
-		case 11: return "s"; break;
-		case 12: return "t"; break;
-		case 13: return "u"; break;
-		case 14: return "v"; break;
-		case 15: return "w"; break;
+		case 11: return "frame2"; break;
+		case 12: return "level"; break;
+		case 13: return "slice"; break;
+		case 14: return "avg"; break;
+		case 15: return "extra"; break;
 		default: error("Invalid dimension!");
 	}
 	return "";
