@@ -477,13 +477,13 @@ extern void draw_plot(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbst
 
 	for (int x = 0; x < X - 1; x++) {
 
-		float trafo(complex float val)
+		NESTED(double, trafo, (complex float val))
 		{
 			complex float v2 = scale * val * cexpf(1.i * phrot);
 
 			return window(winlow, winhigh, crealf(v2))
 				- window(winlow, winhigh, -crealf(v2));
-		}
+		};
 
 		float rx0 = (float)(x + 0);
 		float ry0 = Y / 2 * (1. - trafo(buf[x + 0]));

@@ -20,13 +20,24 @@ TOOLBOX_LIB=$(TOOLBOX_PATH)/lib/
 endif
 
 
-CC ?= gcc
-CFLAGS ?= -Wall -O2
+ifeq ($(origin CC), default)
+	CC = gcc
+endif
+
+CFLAGS = -Wall -O2
+
 
 ifeq ($(BUILDTYPE), MacOSX)
 	CFLAGS += -std=c11 -Xpreprocessor -fopenmp
 else
 	CFLAGS += -std=c11 -fopenmp
+endif
+
+# clang
+
+ifeq ($(findstring clang, $(CC)), clang)
+	CFLAGS += -fblocks
+	LDFLAGS += -lBlocksRuntime
 endif
 
 
@@ -37,16 +48,13 @@ else
 endif
 
 
-ifeq ($(BUILDTYPE), MacOSX)
-    EXPDYN = -Wl,-export_dynamic
-else
-    EXPDYN = -export-dynamic
-endif
+EXPDYN = -rdynamic
+
 
 ifeq ($(BUILDTYPE), MacOSX)
-	LIBFLAGS = -L/opt/local/lib -lm -lpng -lomp
+	LDFLAGS += -L/opt/local/lib -lm -lpng -lomp
 else
-	LIBFLAGS = -lm -lpng
+	LDFLAGS += -lm -lpng
 endif
 
 -include Makefile.local
@@ -58,10 +66,10 @@ src/viewer.inc: src/viewer.ui
 	@echo "STRINGIFY(`cat src/viewer.ui`)" > src/viewer.inc
 
 view:	src/main.c src/view.[ch] src/draw.[ch] src/viewer.inc
-	$(CC) $(CFLAGS) $(EXPDYN) -o view -I$(TOOLBOX_INC) `pkg-config --cflags gtk+-3.0` src/main.c src/view.c src/draw.c `pkg-config --libs gtk+-3.0` $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libgeom.a $(TOOLBOX_LIB)/libnum.a $(LIBFLAGS)
+	$(CC) $(CFLAGS) $(EXPDYN) -o view -I$(TOOLBOX_INC) `pkg-config --cflags gtk+-3.0` src/main.c src/view.c src/draw.c `pkg-config --libs gtk+-3.0` $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libgeom.a $(TOOLBOX_LIB)/libnum.a $(LDFLAGS)
 
 cfl2png:	src/cfl2png.c src/view.[ch] src/draw.[ch] src/viewer.inc
-	$(CC) $(CFLAGS) $(EXPDYN) -o cfl2png -I$(TOOLBOX_INC) src/cfl2png.c src/draw.c $(TOOLBOX_LIB)/libmisc.a  $(TOOLBOX_LIB)/libgeom.a $(TOOLBOX_LIB)/libnum.a $(LIBFLAGS)
+	$(CC) $(CFLAGS) $(EXPDYN) -o cfl2png -I$(TOOLBOX_INC) src/cfl2png.c src/draw.c $(TOOLBOX_LIB)/libmisc.a  $(TOOLBOX_LIB)/libgeom.a $(TOOLBOX_LIB)/libnum.a $(LDFLAGS)
 
 install:
 	install view $(DESTDIR)/usr/lib/bart/commands/
