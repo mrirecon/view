@@ -22,7 +22,12 @@ endif
 
 CC ?= gcc
 CFLAGS ?= -Wall -O2
-CFLAGS += -std=c11 -fopenmp
+
+ifeq ($(BUILDTYPE), MacOSX)
+	CFLAGS += -std=c11 -Xpreprocessor -fopenmp
+else
+	CFLAGS += -std=c11 -fopenmp
+endif
 
 
 ifeq ($(CUDA),1)
@@ -38,6 +43,12 @@ else
     EXPDYN = -export-dynamic
 endif
 
+ifeq ($(BUILDTYPE), MacOSX)
+	LIBFLAGS = -L/opt/local/lib -lm -lpng -lomp
+else
+	LIBFLAGS = -lm -lpng
+endif
+
 -include Makefile.local
 
 
@@ -47,10 +58,10 @@ src/viewer.inc: src/viewer.ui
 	@echo "STRINGIFY(`cat src/viewer.ui`)" > src/viewer.inc
 
 view:	src/main.c src/view.[ch] src/draw.[ch] src/viewer.inc
-	$(CC) $(CFLAGS) $(EXPDYN) -o view -I$(TOOLBOX_INC) `pkg-config --cflags gtk+-3.0` src/main.c src/view.c src/draw.c `pkg-config --libs gtk+-3.0` $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libnum.a -lm -lpng
+	$(CC) $(CFLAGS) $(EXPDYN) -o view -I$(TOOLBOX_INC) `pkg-config --cflags gtk+-3.0` src/main.c src/view.c src/draw.c `pkg-config --libs gtk+-3.0` $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libnum.a $(LIBFLAGS)
 
 cfl2png:	src/cfl2png.c src/view.[ch] src/draw.[ch] src/viewer.inc
-	$(CC) $(CFLAGS) $(EXPDYN) -o cfl2png -I$(TOOLBOX_INC) src/cfl2png.c src/draw.c $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libnum.a -lm -lpng
+	$(CC) $(CFLAGS) $(EXPDYN) -o cfl2png -I$(TOOLBOX_INC) src/cfl2png.c src/draw.c $(TOOLBOX_LIB)/libmisc.a $(TOOLBOX_LIB)/libnum.a $(LIBFLAGS)
 
 install:
 	install view $(DESTDIR)/usr/lib/bart/commands/
