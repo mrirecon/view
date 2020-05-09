@@ -11,7 +11,9 @@ https://mrirecon.github.io/bart/
 
 Installation:
 
-Requires BART up to commit e4df99aa75e0344931ba2e76d9ae052b02da498f
+Requires BART commit 9f9afd127db2690e91e36a12a552d4a4a64e0a43
+or later.
+
 
 Mac OS X:
 
@@ -35,6 +37,11 @@ is installed.
 
 ### Troubleshooting
 
-If an error is raised along the lines of `Gtk-WARNING **: cannot open display`, ensure X11 is installed and running. On later versions of OS X, you may need ![XQuartz](https://www.xquartz.org/) for View to run.
+If an error is raised along the lines of
+`Gtk-WARNING **: cannot open display`, ensure X11 is installed
+and running. On later versions of OS X, you may
+need ![XQuartz](https://www.xquartz.org/) for View to run.
 
-Set the environment variable `DISPLAY=":0"`, run XQuartz, and then retry `view`.
+Set the environment variable `DISPLAY=":0"`, run XQuartz,
+and then retry `view`.
+
