@@ -5,9 +5,6 @@
 #include <string.h>
 #include <strings.h>
 
-#undef MAX
-#undef MIN
-
 #include "num/multind.h"
 #include "num/init.h"
 
@@ -18,13 +15,18 @@
 #include "misc/png.h"
 
 #include "draw.h"
-#include "view.h"
 
 #ifndef CFL_SIZE
 #define CFL_SIZE sizeof(complex float)
 #endif
 
-void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], const complex float* idata);
+#ifndef DIMS
+#define DIMS 16
+#endif
+
+
+static void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], const complex float* idata);
+
 
 static const char usage_str[] = "<input> <output_prefix>";
 static const char help_str[] = "Export images to png.";
@@ -200,19 +202,22 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 		char* cur = name;
 		const char* end = name + bufsize;
 
-		cur += snprintf(cur, end - cur, "%s", output_prefix);
+		cur += snprintf(cur, end - cur, "%s_", output_prefix);
 
 		for (unsigned int i = 0; i < DIMS; i++) {
 
+			static const char* spec = "xyzcmnopqsfrtuvw";
+
 			if (1 != loopdims[i])
-				cur += snprintf(cur, end - cur, "_%s_%04ld", get_spec(i), pos[i]);
+				cur += snprintf(cur, end - cur, "%c%04ld", spec[i], pos[i]);
 		}
 
 		cur += snprintf(cur, end - cur, ".png");
 
 		debug_printf(DP_DEBUG2, "\t%s\n", name);
 
-		update_buf(xdim, ydim, DIMS, dims, strs, pos, flip, interpolation, zoom, zoom,
+		update_buf(xdim, ydim, DIMS, dims, strs, pos,
+			   flip, interpolation, zoom, zoom, false,
 			   rgbw, rgbh, idata, buf);
 
 		draw(rgbw, rgbh, rgbstr, (unsigned char(*)[rgbw][rgbstr / 4][4])rgb,

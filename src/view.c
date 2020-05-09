@@ -62,6 +62,7 @@ struct view_s {
 	bool transpose;
 
 	// representation
+	bool plot;
 	enum mode_t mode;
 	double winhigh;
 	double winlow;
@@ -85,6 +86,11 @@ struct view_s {
 	long dims[DIMS];
 	long strs[DIMS];
 	const complex float* data;
+
+	// geometry
+	unsigned long geom_flags;
+	const float (*geom)[3][3];
+	const float (*geom_current)[3][3];
 
 	// widgets
 	GtkComboBox* gtk_mode;
@@ -142,6 +148,24 @@ static void add_text(cairo_surface_t* surface, int x, int y, int size, const cha
 }
 
 
+extern void update_geom(struct view_s* v)
+{
+	if (NULL == v->geom)
+		return;
+
+	long dims[DIMS];
+	md_select_dims(DIMS, v->geom_flags, dims, v->dims);
+
+	long strs[DIMS];
+	md_calc_strides(DIMS, strs, dims, 1);
+
+	v->geom_current = &v->geom[md_calc_offset(DIMS, strs, v->pos)];
+
+	printf("%f %f %f %f %f %f %f %f %f\n",
+		(*v->geom_current)[0][0], (*v->geom_current)[0][1], (*v->geom_current)[0][2],
+		(*v->geom_current)[1][0], (*v->geom_current)[1][1], (*v->geom_current)[1][2],
+		(*v->geom_current)[2][0], (*v->geom_current)[2][1], (*v->geom_current)[2][2]);
+}
 
 
 extern gboolean update_view(struct view_s* v)
@@ -236,6 +260,17 @@ extern void view_refresh(struct view_s* v)
 	update_view(v);
 }
 
+
+extern void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom)[3][3])
+{
+	v->geom_flags = flags;
+	v->geom = geom;
+	v->geom_current = NULL;
+
+	update_geom(v);
+}
+
+
 extern gboolean refresh_callback(GtkWidget *widget, gpointer data)
 {
 	UNUSED(widget);
@@ -318,6 +353,7 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 
 	v->invalid = true;
 
+	update_geom(v);
 	update_view(v);
 
 	return FALSE;
@@ -351,11 +387,13 @@ extern gboolean window_callback(GtkWidget *widget, gpointer data)
 
 static void update_buf_view(struct view_s* v)
 {
-	update_buf(v->xdim, v->ydim, DIMS, v->dims, v->strs, v->pos, v->flip, v->interpolation, v->xzoom, v->yzoom,
-		   v->rgbw, v->rgbh, v->data, v->buf);
+	update_buf(v->xdim, v->ydim, DIMS, v->dims, v->strs, v->pos,
+		v->flip, v->interpolation, v->xzoom, v->yzoom, v->plot,
+		v->rgbw, v->rgbh, v->data, v->buf);
 }
 
 
+static const char* spec = "xyzcmnopqsfrtuvw";
 
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
@@ -365,20 +403,23 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 	// Prepare output filename
 	unsigned int bufsize = 255;
 	char name[bufsize];
+
 	char* cur = name;
 	const char* end = name + bufsize;
-	cur += snprintf(cur, end - cur, "%s", v->name);
+
+	cur += snprintf(cur, end - cur, "%s_", v->name);
+
 	char dir[bufsize];
 	strncpy(dir, v->name, bufsize);
 
-	for ( int i = 0; i < DIMS; i++) {
-		if ( v->dims[i] != 1 && i != v->xdim && i != v->ydim ){
-			cur += snprintf(cur, end - cur, "_%s_%04ld", get_spec(i), v->pos[i]);
-		}
-	}
+	for (int i = 0; i < DIMS; i++)
+		if ((v->dims[i] != 1) && (i != v->xdim) && (i != v->ydim))
+			cur += snprintf(cur, end - cur, "%c%04ld", spec[i], v->pos[i]);
+
+
 	cur += snprintf(cur, end - cur, ".png");
 
-	v->dialog = gtk_file_chooser_dialog_new ("Save File",
+	v->dialog = gtk_file_chooser_dialog_new("Save File",
                                       v->window,
 				      GTK_FILE_CHOOSER_ACTION_SAVE,
                                       "Cancel",
@@ -386,26 +427,28 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
                                       "Save",
                                       GTK_RESPONSE_ACCEPT,
                                       NULL);
-	v->chooser = GTK_FILE_CHOOSER (v->dialog);
 
-	gtk_file_chooser_set_current_name (v->chooser, basename(name));
+	v->chooser = GTK_FILE_CHOOSER(v->dialog);
+
+	gtk_file_chooser_set_current_name(v->chooser, basename(name));
 	
 	// Outputfolder = Inputfolder
-	gtk_file_chooser_set_current_folder (v->chooser, dirname(dir));
-	gtk_file_chooser_set_do_overwrite_confirmation (v->chooser, TRUE);
+	gtk_file_chooser_set_current_folder(v->chooser, dirname(dir));
+	gtk_file_chooser_set_do_overwrite_confirmation(v->chooser, TRUE);
 
-	gint res = gtk_dialog_run (GTK_DIALOG (v->dialog));
+	gint res = gtk_dialog_run(GTK_DIALOG (v->dialog));
 
-	if (res == GTK_RESPONSE_ACCEPT) {
+	if (GTK_RESPONSE_ACCEPT == res) {
+
 		// export single image
-		char *filename = gtk_file_chooser_get_filename (v->chooser);
+		char *filename = gtk_file_chooser_get_filename(v->chooser);
+
 		if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, filename))
 			gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
 
 		gtk_entry_set_text(v->gtk_entry, "Saved!");
 		g_free (filename);
 	}
-
 
 	gtk_widget_destroy (v->dialog);
 	return FALSE;
@@ -432,12 +475,13 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 						NULL);
 
 	v->chooser = GTK_FILE_CHOOSER(v->dialog);
+
 	// Outputfolder = Inputfolder
 	gtk_file_chooser_set_current_folder(v->chooser, dirname(dir));
 
-	gint res = gtk_dialog_run (GTK_DIALOG (v->dialog));
+	gint res = gtk_dialog_run(GTK_DIALOG (v->dialog));
 
-	if (res == GTK_RESPONSE_ACCEPT) {
+	if (GTK_RESPONSE_ACCEPT == res) {
 
 		char *chosen_dir = gtk_file_chooser_get_filename(v->chooser);
 		char output_name[bufsize];
@@ -490,6 +534,9 @@ static struct xy_s pos2screen(const struct view_s* v, const float (*pos)[DIMS])
 	x *= v->xzoom;
 	y *= v->yzoom;
 
+	if (v->plot)
+		y = v->rgbh / 2;
+
 	return (struct xy_s){ x, y };
 }
 
@@ -508,7 +555,9 @@ static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s x
 		y = v->dims[v->ydim] - 1 - y;
 
 	(*pos)[v->xdim] = roundf(x);
-	(*pos)[v->ydim] = roundf(y);
+
+	if (!v->plot)
+		(*pos)[v->ydim] = roundf(y);
 }
 
 
@@ -551,10 +600,10 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	if (v->rgb_invalid) {
 
-		draw(v->rgbw, v->rgbh, v->rgbstr, (unsigned char(*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
+		(v->plot ? draw_plot : draw)(v->rgbw, v->rgbh, v->rgbstr,
+			(unsigned char(*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
 			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
 			v->rgbw, v->buf);
-
 
 		v->rgb_invalid = false;
 	}
@@ -632,6 +681,8 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	v->xdim = sq_dims[0];
 	v->ydim = sq_dims[1];
 
+	v->plot = false;
+
 	v->xzoom = 2.;
 	v->yzoom = 2.;
 
@@ -643,6 +694,10 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	md_copy_dims(DIMS, v->dims, dims);
 	md_calc_strides(DIMS, v->strs, dims, sizeof(complex float));
 	v->data = data;
+
+	v->geom_flags = 0ul;
+	v->geom = NULL;
+	v->geom_current = NULL;
 
 	v->winlow = 0.;
 	v->winhigh = 1.;
@@ -677,6 +732,22 @@ extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 	UNUSED(button);
 	struct view_s* v = data;
 	v->sync = !v->sync;
+
+	return FALSE;
+}
+
+
+extern gboolean toggle_plot(GtkToggleButton* button, gpointer data)
+{
+	UNUSED(button);
+	struct view_s* v = data;
+	v->plot = !v->plot;
+
+	gtk_widget_set_sensitive(GTK_WIDGET(v->gtk_mode),
+		v->plot ? FALSE : TRUE);
+
+	v->invalid = true;
+	update_view(v);
 
 	return FALSE;
 }
@@ -721,7 +792,6 @@ extern gboolean button_press_event(GtkWidget *widget, GdkEventButton *event, gpo
 
 		set_position(v, v->xdim, pos[v->xdim]);
 		set_position(v, v->ydim, pos[v->ydim]);
-
 	}
 
 	return FALSE;
