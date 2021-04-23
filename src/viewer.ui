@@ -36,6 +36,9 @@
         <col id="0" translatable="yes">REAL</col>
       </row>
       <row>
+        <col id="0" translatable="yes">MAGNITUDE (turbo)</col>
+      </row>
+      <row>
         <col id="0" translatable="yes">FLOW</col>
       </row>
     </data>

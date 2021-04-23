@@ -57,6 +57,17 @@ static void trans_magnitude_viridis(double rgb[3], double a, double b, complex d
 	rgb[2] *= viridis[subscript][2];
 }
 
+static void trans_magnitude_turbo(double rgb[3], double a, double b, complex double value)
+{
+	double magn = window(a, b, cabs(value));
+
+	int subscript = magn * 255.;
+
+	rgb[0] *= turbo[subscript][0];
+	rgb[1] *= turbo[subscript][1];
+	rgb[2] *= turbo[subscript][2];
+}
+
 static void trans_real(double rgb[3], double a, double b, complex double value)
 {
 	rgb[0] *= window(a, b, +creal(value));
@@ -345,6 +356,7 @@ extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4
 			case CMPL: trans_complex(rgb, winlow, winhigh, val); break;
 			case CMPL_MYGBM: trans_complex_MYGBM(rgb, winlow, winhigh, val); break;
 			case REAL: trans_real(rgb, winlow, winhigh, val); break;
+			case MAGN_TURBO: trans_magnitude_turbo(rgb, winlow, winhigh, val); break;
 			case FLOW: trans_flow(rgb, winlow, winhigh, val); break;
 			default: assert(0);
 			}

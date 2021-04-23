@@ -60,6 +60,7 @@ int main(int argc, char* argv[argc])
 		OPT_SELECT('P', enum mode_t, &mode, PHSE, 		"phase"),
 		OPT_SELECT('Y', enum mode_t, &mode, PHSE_MYGBM, 	"phase MYGBM"),
 		OPT_SELECT('R', enum mode_t, &mode, REAL, 		"real"),
+		OPT_SELECT('T', enum mode_t, &mode, MAGN_TURBO,		"magnitude turbo"),
 		OPT_SELECT('F', enum mode_t, &mode, FLOW, 		"flow"),
 	};
 

@@ -3,7 +3,7 @@
 #include <stdbool.h>
 
 
-enum mode_t { MAGN, MAGN_VIRIDS, CMPL, CMPL_MYGBM, PHSE, PHSE_MYGBM, REAL, FLOW };
+enum mode_t { MAGN, MAGN_VIRIDS, CMPL, CMPL_MYGBM, PHSE, PHSE_MYGBM, REAL, MAGN_TURBO, FLOW };
 enum flip_t { OO, XO, OY, XY };
 enum interp_t { NLINEAR, NEAREST, LIINCO };
 
