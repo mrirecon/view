@@ -52,9 +52,9 @@ EXPDYN = -rdynamic
 
 
 ifeq ($(BUILDTYPE), MacOSX)
-	LDFLAGS += -L/opt/local/lib -lm -lpng -lomp
+	LDFLAGS += -L/opt/local/lib -lm -lpng -lomp -lrt
 else
-	LDFLAGS += -lm -lpng
+	LDFLAGS += -lm -lpng -lrt
 endif
 
 -include Makefile.local
