@@ -2,6 +2,7 @@
 
 CUDA?=0
 CUDA_BASE ?= /usr/local/cuda
+CUDA_LIB ?= lib
 
 BUILDTYPE = Linux
 UNAME = $(shell uname -s)
@@ -42,7 +43,7 @@ endif
 
 
 ifeq ($(CUDA),1)
-    CUDA_L := -L$(CUDA_BASE)/lib64 -lcufft -lcudart -lcublas
+    CUDA_L := -L$(CUDA_BASE)/$(CUDA_LIB) -lcufft -lcudart -lcublas
 else
     CUDA_L :=
 endif
