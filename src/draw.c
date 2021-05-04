@@ -46,26 +46,27 @@ static void trans_magnitude(double rgb[3], double a, double b, complex double va
 	rgb[2] *= magn;
 }
 
+static void interpolate_cmap(double rgb[3], double x, const double cmap[256][3])
+{
+	int a = x * 255;
+	int b = MIN(255, a + 1);
+	double f = x * 255. - a;
+	for (int i = 0; i < 3; ++i)
+		rgb[i] *= cmap[a][i] + f * (cmap[b][i] - cmap[a][i]);
+}
+
 static void trans_magnitude_viridis(double rgb[3], double a, double b, complex double value)
 {
 	double magn = window(a, b, cabs(value));
 
-	int subscript = magn * 255.;
-
-	rgb[0] *= viridis[subscript][0];
-	rgb[1] *= viridis[subscript][1];
-	rgb[2] *= viridis[subscript][2];
+	interpolate_cmap(rgb, magn, viridis);
 }
 
 static void trans_magnitude_turbo(double rgb[3], double a, double b, complex double value)
 {
 	double magn = window(a, b, cabs(value));
 
-	int subscript = magn * 255.;
-
-	rgb[0] *= turbo[subscript][0];
-	rgb[1] *= turbo[subscript][1];
-	rgb[2] *= turbo[subscript][2];
+	interpolate_cmap(rgb, magn, turbo);
 }
 
 static void trans_real(double rgb[3], double a, double b, complex double value)
@@ -94,13 +95,10 @@ static void trans_phase_MYGBM(double rgb[3], double a, double b, complex double 
 
 	if (isfinite(arg)) {
 
-		int subscript = (arg + M_PI) / 2. / M_PI * 255.;
-
-		assert((0 <= subscript) && (subscript <= 255));
+		double val = (arg + M_PI) / 2. / M_PI;
+		assert((0.0 <= val) && (val <= 1.0));
 	
-		rgb[0] *= cyclic_mygbm[subscript][0];
-		rgb[1] *= cyclic_mygbm[subscript][1];
-		rgb[2] *= cyclic_mygbm[subscript][2];
+		interpolate_cmap(rgb, val, cyclic_mygbm);
 	}
 }
 
