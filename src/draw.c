@@ -339,24 +339,33 @@ extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4
 	for (int x = 0; x < X; x++) {
 		for (int y = 0; y < Y; y++) {
 
-			complex float val = scale * buf[str * y + x];
-
-			val *= cexpf(1.i * phrot);
-
 			double rgb[3] = { 1., 1., 1. };
 
-			switch (mode) {
+			complex float val = scale * buf[str * y + x];
 
-			case MAGN: trans_magnitude(rgb, winlow, winhigh, val); break;
-			case MAGN_VIRIDS: trans_magnitude_viridis(rgb, winlow, winhigh, val); break;
-			case PHSE: trans_phase(rgb, winlow, winhigh, val); break;
-			case PHSE_MYGBM: trans_phase_MYGBM(rgb, winlow, winhigh, val); break;
-			case CMPL: trans_complex(rgb, winlow, winhigh, val); break;
-			case CMPL_MYGBM: trans_complex_MYGBM(rgb, winlow, winhigh, val); break;
-			case REAL: trans_real(rgb, winlow, winhigh, val); break;
-			case MAGN_TURBO: trans_magnitude_turbo(rgb, winlow, winhigh, val); break;
-			case FLOW: trans_flow(rgb, winlow, winhigh, val); break;
-			default: assert(0);
+			if (isfinite(crealf(val)) && isfinite(cimagf(val))) {
+
+				val *= cexpf(1.i * phrot);
+
+				switch (mode) {
+
+				case MAGN: trans_magnitude(rgb, winlow, winhigh, val); break;
+				case MAGN_VIRIDS: trans_magnitude_viridis(rgb, winlow, winhigh, val); break;
+				case PHSE: trans_phase(rgb, winlow, winhigh, val); break;
+				case PHSE_MYGBM: trans_phase_MYGBM(rgb, winlow, winhigh, val); break;
+				case CMPL: trans_complex(rgb, winlow, winhigh, val); break;
+				case CMPL_MYGBM: trans_complex_MYGBM(rgb, winlow, winhigh, val); break;
+				case REAL: trans_real(rgb, winlow, winhigh, val); break;
+				case MAGN_TURBO: trans_magnitude_turbo(rgb, winlow, winhigh, val); break;
+				case FLOW: trans_flow(rgb, winlow, winhigh, val); break;
+				default: assert(0);
+				}
+
+			} else {
+
+				rgb[0] = 0.;
+				rgb[1] = 0.;
+				rgb[2] = 0.;
 			}
 
 			(*rgbbuf)[y][x][0] = 255. * rgb[2];
