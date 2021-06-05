@@ -5,6 +5,7 @@
 CUDA?=0
 CUDA_BASE ?= /usr/local/cuda
 CUDA_LIB ?= lib
+DEBUG?=0
 
 BUILDTYPE = Linux
 UNAME = $(shell uname -s)
@@ -27,8 +28,13 @@ ifeq ($(origin CC), default)
 	CC = gcc
 endif
 
-CFLAGS = -Wall -O2
+CFLAGS ?= -Wall
 
+ifeq ($(DEBUG),1)
+	CFLAGS += -Og -g
+else
+	CFLAGS += -O2
+endif
 
 ifeq ($(BUILDTYPE), MacOSX)
 	CFLAGS += -std=c11 -Xpreprocessor -fopenmp
