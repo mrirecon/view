@@ -11,7 +11,7 @@ https://mrirecon.github.io/bart/
 
 Installation:
 
-Requires BART commit 9f9afd127db2690e91e36a12a552d4a4a64e0a43
+Requires BART commit dd40a4dff42d94b766e72bb3599ba23c9b316ab6
 or later.
 
 

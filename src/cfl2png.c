@@ -28,13 +28,22 @@
 static void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], const complex float* idata);
 
 
-static const char usage_str[] = "<input> <output_prefix>";
 static const char help_str[] = "Export images to png.";
 
 
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[argc])
 {
+	const char* in_file;
+	const char* out_prefix;
+
+	struct arg_s args[] = {
+
+		ARG_INFILE(true, &in_file, "input"),
+		ARG_STRING(true, &out_prefix, "output_prefix"),
+	};
+
+
 	int xdim = 0;
 	int ydim = 0;
 	float windowing[2] = {0.f, 1.f};
@@ -78,14 +87,11 @@ int main(int argc, char* argv[])
 		OPT_INT('d', &debug_level, "level", "Debug level"),
 	};
 
-	cmdline(&argc, argv, 2, 1000, usage_str, help_str, ARRAY_SIZE(opts), opts);
+	cmdline(&argc, argv, ARRAY_SIZE(args), args, help_str, ARRAY_SIZE(opts), opts);
 
 	assert(    (windowing[0] >= 0.f)
 		&& (windowing[1] <= 1.f)
 		&& (windowing[0] < windowing[1]));
-
-	const char* infile = argv[1];
-	const char* output_prefix = argv[2];
 
 	assert((0 <= xdim) && (xdim < DIMS));
 	assert((0 <= ydim) && (ydim < DIMS));
@@ -94,7 +100,7 @@ int main(int argc, char* argv[])
 	 * If the filename ends in ".hdr", ".cfl" or just "." (from
 	 * tab-completion), just replace the "." with a \0-character.
 	 */
-	char* dot = strrchr(infile, '.');
+	char* dot = strrchr(in_file, '.');
 
 	if (   (NULL != dot)
             && (   !strcmp(dot, ".cfl")
@@ -104,9 +110,9 @@ int main(int argc, char* argv[])
 
 
 	long dims[DIMS];
-	complex float* idata = load_cfl(infile, DIMS, dims);
+	complex float* idata = load_cfl(in_file, DIMS, dims);
 
-	char* ext = rindex(output_prefix, '.');
+	char* ext = rindex(out_prefix, '.');
 
 	if (NULL != ext) {
 
@@ -116,7 +122,7 @@ int main(int argc, char* argv[])
 			*ext = '\0';
 	}
 
-	export_images(output_prefix, xdim, ydim, windowing, zoom, mode, flip, interpolation, dims, idata);
+	export_images(out_prefix, xdim, ydim, windowing, zoom, mode, flip, interpolation, dims, idata);
 
 
 	unmap_cfl(DIMS, dims, idata);

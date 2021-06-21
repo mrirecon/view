@@ -22,23 +22,32 @@
 
 
 
-static const char usage_str[] = "<image> ...";
 static const char help_str[] = "View images.";
 
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[argc])
 {
 	gtk_init(&argc, &argv);
+
+	long count;
+	const char** in_files;
+
+	struct arg_s args[] = {
+
+		ARG_TUPLE(true, &count, 1, OPT_INFILE, sizeof(char*), &in_files, "image"),
+	};
+
+
 
 	const struct opt_s opts[] = {
 
 	};
 
-	cmdline(&argc, argv, 1, 100, usage_str, help_str, ARRAY_SIZE(opts), opts);
+	cmdline(&argc, argv, ARRAY_SIZE(args), args, help_str, ARRAY_SIZE(opts), opts);
 
 	struct view_s* v = NULL;
 
-	for (int i = 1; i < argc; i++) {
+	for (int i = 0; i < count; i++) {
 
 		long dims[DIMS];
 
@@ -51,19 +60,19 @@ int main(int argc, char* argv[])
 		 * a file manager.
 		 */
 
-		char* dot = strrchr(argv[i], '.');
+		char* dot = strrchr(in_files[i], '.');
 
 		if ((NULL != dot) && (	 !strcmp(dot, ".cfl") 
 				      || !strcmp(dot, ".hdr") 
 				      || !strcmp(dot, ".")))
 			*dot = '\0';
 
-		complex float* x = load_cfl(argv[i], DIMS, dims);
+		complex float* x = load_cfl(in_files[i], DIMS, dims);
 
 
 
 		// FIXME: we never delete them
-		struct view_s* v2 = window_new(argv[i], NULL, dims, x);
+		struct view_s* v2 = window_new(in_files[i], NULL, dims, x);
 
 		// If multiple files are passed on the commandline, add them to window
 		// list. This enables sync of windowing and so on...
