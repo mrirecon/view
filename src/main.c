@@ -34,7 +34,7 @@ int main(int argc, char* argv[argc])
 
 	struct arg_s args[] = {
 
-		ARG_TUPLE(true, &count, 1, OPT_INFILE, sizeof(char*), &in_files, "image"),
+		ARG_TUPLE(true, &count, 1, { OPT_INFILE, sizeof(char*), &in_files, "image" }),
 	};
 
 
