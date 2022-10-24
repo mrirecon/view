@@ -203,22 +203,28 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 		debug_print_dims(DP_DEBUG3, DIMS, pos);
 
 		// Prepare output filename
-		unsigned int bufsize = 255;
-		char name[bufsize];
-		char* cur = name;
-		const char* end = name + bufsize;
+		static const char* spec = "xyzcmnopqsfrtuvw";
+		int len = 0;
 
-		cur += snprintf(cur, end - cur, "%s_", output_prefix);
+		len += snprintf(NULL, 0, "%s_", output_prefix);
 
-		for (unsigned int i = 0; i < DIMS; i++) {
-
-			static const char* spec = "xyzcmnopqsfrtuvw";
-
+		for (unsigned int i = 0; i < DIMS; i++)
 			if (1 != loopdims[i])
-				cur += snprintf(cur, end - cur, "%c%04ld", spec[i], pos[i]);
-		}
+				len += snprintf(NULL, 0, "%c%04ld", spec[i], pos[i]);
 
-		cur += snprintf(cur, end - cur, ".png");
+		len += snprintf(NULL, 0, ".png");
+		len++;
+
+		char* name = xmalloc(len);
+		int off = 0;
+
+		off += snprintf(name + off, len - off, "%s_", output_prefix);
+
+		for (unsigned int i = 0; i < DIMS; i++)
+			if (1 != loopdims[i])
+				off += snprintf(name + off, len - off, "%c%04ld", spec[i], pos[i]);
+
+		off += snprintf(name + off, len - off, ".png");
 
 		debug_printf(DP_DEBUG2, "\t%s\n", name);
 
@@ -232,6 +238,8 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 
 		if (0 != png_write_bgr32(name, rgbw, rgbh, 0, rgb))
 			error("Error: writing image file.\n");
+
+		xfree(name);
 	}
 
 // 	free(source);

@@ -1,9 +1,6 @@
 /* Copyright 2015-2016. Martin Uecker.
  * All rights reserved. Use of this source code is governed by
  * a BSD-style license which can be found in the LICENSE file.
- *
- * Author:
- *	2015-2016 Martin Uecker <martin.uecker@med.uni-goettinge.de>
  */
 
 #define _GNU_SOURCE
@@ -400,24 +397,31 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 	UNUSED(widget);
 	struct view_s* v = data;
 	
-	// Prepare output filename
-	unsigned int bufsize = 255;
-	char name[bufsize];
+	int len = 0;
 
-	char* cur = name;
-	const char* end = name + bufsize;
-
-	cur += snprintf(cur, end - cur, "%s_", v->name);
-
-	char dir[bufsize];
-	strncpy(dir, v->name, bufsize);
+	len += snprintf(NULL, 0, "%s_", v->name);
 
 	for (int i = 0; i < DIMS; i++)
 		if ((v->dims[i] != 1) && (i != v->xdim) && (i != v->ydim))
-			cur += snprintf(cur, end - cur, "%c%04ld", spec[i], v->pos[i]);
+			len += snprintf(NULL, 0, "%c%04ld", spec[i], v->pos[i]);
+
+	len += snprintf(NULL, 0, ".png");
+
+	len++;
+
+	char* name = xmalloc(len);
+
+	int off = 0;
+
+	off += snprintf(name + off, len - off, "%s_", v->name);
+
+	for (int i = 0; i < DIMS; i++)
+		if ((v->dims[i] != 1) && (i != v->xdim) && (i != v->ydim))
+			off += snprintf(name + off, len - off, "%c%04ld", spec[i], v->pos[i]);
+
+	off += snprintf(name + off, len - off, ".png");
 
 
-	cur += snprintf(cur, end - cur, ".png");
 
 	v->dialog = gtk_file_chooser_dialog_new("Save File",
                                       v->window,
@@ -432,11 +436,13 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 
 	gtk_file_chooser_set_current_name(v->chooser, basename(name));
 	
+	char* dname = strdup(v->name);
+
 	// Outputfolder = Inputfolder
-	gtk_file_chooser_set_current_folder(v->chooser, dirname(dir));
+	gtk_file_chooser_set_current_folder(v->chooser, dirname(dname));
 	gtk_file_chooser_set_do_overwrite_confirmation(v->chooser, TRUE);
 
-	gint res = gtk_dialog_run(GTK_DIALOG (v->dialog));
+	gint res = gtk_dialog_run(GTK_DIALOG(v->dialog));
 
 	if (GTK_RESPONSE_ACCEPT == res) {
 
@@ -447,21 +453,24 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 			gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
 
 		gtk_entry_set_text(v->gtk_entry, "Saved!");
-		g_free (filename);
+
+		g_free(filename);
 	}
 
 	gtk_widget_destroy (v->dialog);
+
+	xfree(name);
+	xfree(dname);
+
 	return FALSE;
 }
+
+
 
 extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 {
 	UNUSED(widget);
 	struct view_s* v = data;
-
-	unsigned int bufsize = 255;
-	char dir[bufsize];
-	strncpy(dir, v->name, bufsize);
 
 	int frame_dim = 10;
 
@@ -476,15 +485,17 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 
 	v->chooser = GTK_FILE_CHOOSER(v->dialog);
 
+
+	char* dname = strdup(v->name);
+
 	// Outputfolder = Inputfolder
-	gtk_file_chooser_set_current_folder(v->chooser, dirname(dir));
+	gtk_file_chooser_set_current_folder(v->chooser, dirname(dname));
 
 	gint res = gtk_dialog_run(GTK_DIALOG (v->dialog));
 
 	if (GTK_RESPONSE_ACCEPT == res) {
 
 		char *chosen_dir = gtk_file_chooser_get_filename(v->chooser);
-		char output_name[bufsize];
 
 		for (unsigned int f = 0; f < v->dims[frame_dim]; f++) {
 
@@ -495,10 +506,14 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 				v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
 				v->rgbw, v->buf);
 
-			char suff[16];
-			snprintf(suff, 16, "/mov-%04d.png", f);
-			strncpy(output_name, chosen_dir, bufsize - 16);
-			strncat(output_name, suff, 16);
+			char output_name[256];
+			int len = snprintf(output_name, 256, "%s/mov-%04d.png", chosen_dir, f);
+
+			if (len + 1 >= sizeof(output_name)) {
+
+				gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
+				break;
+			}
 
 			if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->source, output_name))
 				gtk_entry_set_text(v->gtk_entry, "Error: writing image file.\n");
@@ -509,6 +524,8 @@ extern gboolean save_movie_callback(GtkWidget *widget, gpointer data)
 	}
 
 	gtk_widget_destroy (v->dialog);
+
+	xfree(dname);
 
 	return FALSE;
 }
