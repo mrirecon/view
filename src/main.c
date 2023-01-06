@@ -28,6 +28,7 @@ static const char help_str[] = "View images.";
 
 int main(int argc, char* argv[argc])
 {
+	gtk_disable_setlocale();
 	gtk_init(&argc, &argv);
 
 	long count;
