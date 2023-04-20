@@ -11,6 +11,7 @@
 #include "misc/misc.h"
 #include "misc/debug.h"
 #include "misc/mmio.h"
+#include "misc/io.h"
 #include "misc/opts.h"
 #include "misc/png.h"
 
@@ -101,6 +102,7 @@ int main(int argc, char* argv[argc])
 	 * If the filename ends in ".hdr", ".cfl" or just "." (from
 	 * tab-completion), just replace the "." with a \0-character.
 	 */
+	io_unregister(in_file);
 	char* dot = strrchr(in_file, '.');
 
 	if (   (NULL != dot)
@@ -109,6 +111,7 @@ int main(int argc, char* argv[argc])
 		|| !strcmp(dot, ".")))
 		*dot = '\0';
 
+	io_reserve_input(in_file);
 
 	long dims[DIMS];
 	complex float* idata = load_cfl(in_file, DIMS, dims);

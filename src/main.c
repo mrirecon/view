@@ -16,6 +16,7 @@
 
 #include "misc/misc.h"
 #include "misc/mmio.h"
+#include "misc/io.h"
 #include "misc/opts.h"
 
 #include "view.h"
@@ -60,6 +61,7 @@ int main(int argc, char* argv[argc])
 		 * a file manager.
 		 */
 
+		io_unregister(in_files[i]);
 		char* dot = strrchr(in_files[i], '.');
 
 		if ((NULL != dot) && (	 !strcmp(dot, ".cfl") 
@@ -67,6 +69,7 @@ int main(int argc, char* argv[argc])
 				      || !strcmp(dot, ".")))
 			*dot = '\0';
 
+		io_reserve_input(in_files[i]);
 		complex float* x = load_cfl(in_files[i], DIMS, dims);
 
 
