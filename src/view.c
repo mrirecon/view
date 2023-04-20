@@ -116,7 +116,7 @@ struct view_s {
 };
 
 
-
+#if 0
 static void add_text(cairo_surface_t* surface, int x, int y, int size, const char* text)
 {
 	cairo_t* cr = cairo_create(surface);
@@ -143,7 +143,7 @@ static void add_text(cairo_surface_t* surface, int x, int y, int size, const cha
 	g_object_unref(layout);
 	cairo_destroy(cr);
 }
-
+#endif
 
 extern void update_geom(struct view_s* v)
 {
