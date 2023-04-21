@@ -301,6 +301,7 @@ extern void resample(int X, int Y, long str, complex float* buf,
 	int N, const double pos[N], const double dx[N], const double dy[N], 
 	const long dims[N], const long strs[N], enum interp_t interpolation, const complex float* in)
 {
+#pragma omp parallel for collapse(2)
 	for (int x = 0; x < X; x++) {
 		for (int y = 0; y < Y; y++) {
 
@@ -336,6 +337,7 @@ extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4
 	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf)
 {
+#pragma omp parallel for collapse(2)
 	for (int x = 0; x < X; x++) {
 		for (int y = 0; y < Y; y++) {
 
