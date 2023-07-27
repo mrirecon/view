@@ -1,0 +1,23 @@
+variables:
+  OMP_NUM_THREADS: "1"
+
+
+before_script:
+  - apt-get update -qq && apt-get install -y -qq
+  - apt-get install -y -qq make git gcc
+  - apt-get install -y -qq libgtk-3-dev
+  - apt-get install -y -qq libbart-dev
+
+stages:
+  - build
+
+Build:
+  image: debian:bookworm
+  stage: build
+  script:
+    - make all
+  artifacts:
+    paths:
+      - view
+      - cfl2png
+
