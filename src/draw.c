@@ -50,7 +50,9 @@ static void interpolate_cmap(double rgb[3], double x, const double cmap[256][3])
 {
 	int a = x * 255;
 	int b = MIN(255, a + 1);
+
 	double f = x * 255. - a;
+
 	for (int i = 0; i < 3; ++i)
 		rgb[i] *= cmap[a][i] + f * (cmap[b][i] - cmap[a][i]);
 }
