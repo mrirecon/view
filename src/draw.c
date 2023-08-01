@@ -138,6 +138,13 @@ static complex float int_nlinear(int N, const float x[N], const long strs[N], co
 		           +       x[N - 1]  * int_nlinear(N - 1, x, strs, in + strs[N - 1]));
 }
 
+static complex float int_nlinearmag(int N, const float x[N], const long strs[N], const complex float* in)
+{
+	return (0 == N) ? cabsf(in[0])
+			: (  (1. - x[N - 1]) * int_nlinearmag(N - 1, x, strs, in + 0)
+		           +       x[N - 1]  * int_nlinearmag(N - 1, x, strs, in + strs[N - 1]));
+}
+
 
 static complex float int_nearest(int N, const float x[N], const long strs[N], const complex float* in)
 {
@@ -210,6 +217,9 @@ complex float sample(int N, const float pos[N], const long dims[N], const long s
 
 	case NLINEAR:
 		return int_nlinear(D, rem, strs2, (const complex float*)(((char*)in) + off0));
+
+	case NLINEARMAG:
+		return int_nlinearmag(D, rem, strs2, (const complex float*)(((char*)in) + off0));
 
 	case NEAREST:
 		return int_nearest(D, rem, strs2, (const complex float*)(((char*)in) + off0));
