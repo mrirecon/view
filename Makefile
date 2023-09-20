@@ -80,7 +80,8 @@ cfl2png:	src/cfl2png.c src/view.[ch] src/draw.[ch] src/viewer.inc
 	$(CC) $(CFLAGS) $(EXPDYN) -o cfl2png -I$(TOOLBOX_INC) src/cfl2png.c src/draw.c $(TOOLBOX_LIB)/libmisc.a  $(TOOLBOX_LIB)/libgeom.a $(TOOLBOX_LIB)/libnum.a $(CUDA_L) $(LDFLAGS)
 
 install:
-	install view $(DESTDIR)/usr/lib/bart/commands/
+	install -D view $(DESTDIR)/usr/lib/bart/commands/view
+	install cfl2png $(DESTDIR)/usr/lib/bart/commands/
 
 
 clean:
