@@ -248,12 +248,11 @@ complex float lic_sample(int N, const float pos[N], const long dims[N], const lo
 	complex float out = 0.;
 
 	float pos1[N];
-
-	complex float val = sample(N, pos1, dims, strs, NLINEAR, in);
-
 	for (int i = 0; i < N; i++)
 		pos1[i] = pos[i];
 
+
+	complex float val = sample(N, pos1, dims, strs, NLINEAR, in);
 	for (int i = 0; i < L; i++) {
 
 		complex float a = sample(N, pos1, dims, strs, NLINEAR, in);
@@ -425,6 +424,8 @@ void update_buf(long xdim, long ydim, int N, const long dims[N], const long strs
 			dy[ydim] *= -1.;
 		}
 	}
+	assert(xdim < N);
+	assert(ydim < N);
 
 	dx[xdim] = dx[xdim] / xzoom;
 	dy[ydim] = dy[ydim] / yzoom;
