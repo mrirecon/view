@@ -75,6 +75,7 @@ int main(int argc, char* argv[argc])
 	struct opt_s interpopt[] = {
 		OPT_SELECT('L', enum interp_t, &interpolation, NLINEAR, 		"n-linear interpolation"),
 		OPT_SELECT('N', enum interp_t, &interpolation, NEAREST, 		"nearest neighbor interpolation"),
+		OPT_SELECT('C', enum interp_t, &interpolation, LIINCO, 			"line-integral convolution"),
 	};
 
 	const struct opt_s opts[] = {
