@@ -6,6 +6,7 @@ CUDA?=0
 CUDA_BASE ?= /usr/local/cuda
 CUDA_LIB ?= lib
 DEBUG?=0
+OMP?=1
 
 BUILDTYPE = Linux
 UNAME = $(shell uname -s)
@@ -37,10 +38,17 @@ else
 endif
 
 ifeq ($(BUILDTYPE), MacOSX)
-	CFLAGS += -std=c11 -Xpreprocessor -fopenmp
+	CFLAGS += -std=c11 -Xpreprocessor
 else
-	CFLAGS += -std=c11 -fopenmp
+	CFLAGS += -std=c11
 endif
+
+ifeq ($(OMP),1)
+	CFLAGS += -fopenmp
+else
+	CFLAGS += -Wno-unknown-pragmas
+endif
+
 
 # clang
 

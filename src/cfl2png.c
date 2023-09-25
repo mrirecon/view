@@ -182,9 +182,6 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 	int rgbw = dims[xdim] * zoom;
 	int rgbh = dims[ydim] * zoom;
 	int rgbstr = 4 * rgbw;
-	unsigned char* rgb = xmalloc(rgbh * rgbstr);
-
-	complex float* buf = xmalloc(rgbh * rgbw * sizeof(complex float));
 
 	// loop over all dims other than xdim and ydim
 	long loopdims[DIMS];
@@ -196,12 +193,14 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 
 
 
-	long pos[DIMS] = { [0 ... DIMS - 1] = 0  };
 	long strs[DIMS];
 	md_calc_strides(DIMS, strs, dims, sizeof(complex float));
 
-	for (unsigned long d = 0l; d < md_calc_size(DIMS, loopdims); ++d){
 
+#pragma omp parallel for
+	for (unsigned long d = 0l; d < md_calc_size(DIMS, loopdims); ++d) {
+
+		long pos[DIMS] = { [0 ... DIMS - 1] = 0  };
 		unravel_index(DIMS, pos, loopdims, d);
 
 		debug_printf(DP_DEBUG3, "\ti: %lu\n\t", d);
@@ -233,22 +232,25 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 
 		debug_printf(DP_DEBUG2, "\t%s\n", name);
 
+		complex float* buf = xmalloc(rgbh * rgbw * sizeof(complex float));
+
 		update_buf(xdim, ydim, DIMS, dims, strs, pos,
 			   flip, interpolation, zoom, zoom, false,
 			   rgbw, rgbh, idata, buf);
+
+		unsigned char* rgb = xmalloc(rgbh * rgbstr);
 
 		draw(rgbw, rgbh, rgbstr, (unsigned char(*)[rgbw][rgbstr / 4][4])rgb,
 			mode, 1. / max, windowing[0], windowing[1], 0,
 			rgbw, buf);
 
+		xfree(buf);
+
 		if (0 != png_write_bgr32(name, rgbw, rgbh, 0, rgb))
 			error("Error: writing image file.\n");
 
+		xfree(rgb);
 		xfree(name);
 	}
-
-// 	free(source);
-	free(buf);
-	free(rgb);
 }
 
