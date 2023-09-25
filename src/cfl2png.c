@@ -188,10 +188,10 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 
 	// loop over all dims other than xdim and ydim
 	long loopdims[DIMS];
-	unsigned long loopflags = (MD_BIT(xdim)|MD_BIT(ydim));
-	md_select_dims(DIMS, ~loopflags, loopdims, dims);
+	unsigned long imflags = (MD_BIT(xdim)|MD_BIT(ydim));
+	md_select_dims(DIMS, ~imflags, loopdims, dims);
 
-	debug_printf(DP_DEBUG3, "flags: %lu\nloopdims: ", loopflags);
+	debug_printf(DP_DEBUG3, "imflags: %lu\nloopdims: ", imflags);
 	debug_print_dims(DP_DEBUG3, DIMS, loopdims);
 
 
