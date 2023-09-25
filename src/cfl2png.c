@@ -137,23 +137,22 @@ int main(int argc, char* argv[argc])
 }
 
 
-
 /**
  * Convert flat index to pos
  *
  */
-static void unravel_index(unsigned int D, long pos[D], const long dims[D], long index)
+static void unravel_index(int D, long pos[D], unsigned long flags, const long dims[D], long index)
 {
-	for (unsigned int d = 0; d < D; ++d) {
+	long ind = index;
+	for (int d = 0; d < D; ++d) {
 
-		if (1 == dims[d])
+		if (!MD_IS_SET(flags, d))
 			continue;
 
-		pos[d] = index % dims[d];
-		index /= dims[d];
+		pos[d] = ind % dims[d];
+		ind /= dims[d];
 	}
 }
-
 
 void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], const complex float* idata)
 {
@@ -202,7 +201,7 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 	for (unsigned long d = 0l; d < md_calc_size(DIMS, loopdims); ++d) {
 
 		long pos[DIMS] = { [0 ... DIMS - 1] = 0  };
-		unravel_index(DIMS, pos, loopdims, d);
+		unravel_index(DIMS, pos, ~0L, loopdims, d);
 
 		debug_printf(DP_DEBUG3, "\ti: %lu\n\t", d);
 		debug_print_dims(DP_DEBUG3, DIMS, pos);
