@@ -390,38 +390,15 @@ static void update_buf_view(struct view_s* v)
 }
 
 
-static const char* spec = "xyzcmnopqsfrtuvw";
-
 extern gboolean save_callback(GtkWidget *widget, gpointer data)
 {
 	UNUSED(widget);
 	struct view_s* v = data;
-	
-	int len = 0;
 
-	len += snprintf(NULL, 0, "%s_", v->name);
+	long loopdims[DIMS];
+	md_select_dims(DIMS, ~(MD_BIT(v->xdim) | MD_BIT(v->ydim)), loopdims, v->dims);
 
-	for (int i = 0; i < DIMS; i++)
-		if ((v->dims[i] != 1) && (i != v->xdim) && (i != v->ydim))
-			len += snprintf(NULL, 0, "%c%04ld", spec[i], v->pos[i]);
-
-	len += snprintf(NULL, 0, ".png");
-
-	len++;
-
-	char* name = xmalloc(len);
-
-	int off = 0;
-
-	off += snprintf(name + off, len - off, "%s_", v->name);
-
-	for (int i = 0; i < DIMS; i++)
-		if ((v->dims[i] != 1) && (i != v->xdim) && (i != v->ydim))
-			off += snprintf(name + off, len - off, "%c%04ld", spec[i], v->pos[i]);
-
-	off += snprintf(name + off, len - off, ".png");
-
-
+	char* name = construct_filename(DIMS, loopdims, v->pos, v->name, "png");
 
 	v->dialog = gtk_file_chooser_dialog_new("Save File",
                                       v->window,
