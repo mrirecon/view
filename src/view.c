@@ -289,10 +289,10 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 		if (!check)
 			continue;
 
-		if (1 == v->dims[j])
+		if (1 == v->dims[j]) {
+
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->gtk_checkall[j]), FALSE);
-		else
-		if ((j != v->xdim) && (j != v->ydim)) {
+		} else if ((j != v->xdim) && (j != v->ydim)) {
 
 			for (int i = 0; i < DIMS; i++) {
 
