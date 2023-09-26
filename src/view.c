@@ -408,7 +408,7 @@ extern gboolean save_callback(GtkWidget *widget, gpointer data)
 	long loopdims[DIMS];
 	md_select_dims(DIMS, ~(MD_BIT(v->xdim) | MD_BIT(v->ydim)), loopdims, v->dims);
 
-	char* name = construct_filename(DIMS, loopdims, v->pos, v->name, "png");
+	char* name = construct_filename_view(DIMS, loopdims, v->pos, v->name, "png");
 
 	v->dialog = gtk_file_chooser_dialog_new("Save File",
                                       v->window,
@@ -919,7 +919,7 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_fit), TRUE);
 
 	v->gtk_sync = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "sync"));
-	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_sync), TRUE);
+	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_sync), v->sync ? TRUE : FALSE);
 
 	for (int j = 0; j < DIMS; j++) {
 

@@ -541,7 +541,7 @@ extern void draw_plot(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbst
 
 static const char* spec = "xyzcmnopqsfrtuvw";
 
-char* construct_filename(unsigned int D, const long loopdims[D], const long pos[D], const char* prefix, const char* ext)
+char* construct_filename_view(unsigned int D, const long loopdims[D], const long pos[D], const char* prefix, const char* ext)
 {
 	// Prepare output filename
 

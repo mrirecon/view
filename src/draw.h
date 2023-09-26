@@ -32,4 +32,4 @@ extern const char color_white[3];
 extern const char color_red[3];
 extern const char color_blue[3];
 
-extern char* construct_filename(unsigned int D, const long loopdims[D], const long pos[D], const char* prefix, const char* ext);
+extern char* construct_filename_view(unsigned int D, const long loopdims[D], const long pos[D], const char* prefix, const char* ext);

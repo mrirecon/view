@@ -207,7 +207,7 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 		debug_print_dims(DP_DEBUG3, DIMS, pos);
 
 		// Prepare output filename
-		char* name = construct_filename(DIMS, loopdims, pos, output_prefix, "png");
+		char* name = construct_filename_view(DIMS, loopdims, pos, output_prefix, "png");
 
 		debug_printf(DP_DEBUG2, "\t%s\n", name);
 
