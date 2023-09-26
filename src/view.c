@@ -281,6 +281,14 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 	UNUSED(widget);
 	struct view_s* v = data;
 
+
+	// Avoid calling this function from itself.
+	// Toggling the GTK_TOOGLE_BUTTONs below would normally lead to another call of this function.
+	static bool in_callback = false;
+	if (in_callback)
+		return FALSE;
+	in_callback = true;
+
 	for (int j = 0; j < DIMS; j++) {
 
 		v->pos[j] = gtk_adjustment_get_value(v->gtk_posall[j]);
@@ -353,6 +361,7 @@ extern gboolean geom_callback(GtkWidget *widget, gpointer data)
 	update_geom(v);
 	update_view(v);
 
+	in_callback = false;
 	return FALSE;
 }
 
