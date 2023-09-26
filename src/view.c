@@ -102,6 +102,7 @@ struct view_s {
 	GtkEntry* gtk_entry;
 	GtkToggleToolButton* gtk_transpose;
 	GtkToggleToolButton* gtk_fit;
+	GtkToggleToolButton* gtk_sync;
 
 	GtkAdjustment* gtk_posall[DIMS];
 	GtkCheckButton* gtk_checkall[DIMS];
@@ -734,7 +735,7 @@ extern gboolean toggle_sync(GtkToggleButton* button, gpointer data)
 {
 	UNUSED(button);
 	struct view_s* v = data;
-	v->sync = !v->sync;
+	v->sync = gtk_toggle_tool_button_get_active(v->gtk_sync);
 
 	return FALSE;
 }
@@ -916,6 +917,9 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_transpose), TRUE);
 	v->gtk_fit = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "fit"));
 	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_fit), TRUE);
+
+	v->gtk_sync = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "sync"));
+	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_sync), TRUE);
 
 	for (int j = 0; j < DIMS; j++) {
 
