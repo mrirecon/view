@@ -175,12 +175,19 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 	}
 
 	double max = 0.;
-	for (long j = 0; j < md_calc_size(DIMS, dims); j++)
-		if (max < cabsf(idata[j]))
-			max = cabsf(idata[j]);
 
-	if ((0. == max) || absolute_windowing)
+	if (absolute_windowing) {
+
 		max = 1.;
+	} else {
+
+		for (long j = 0; j < md_calc_size(DIMS, dims); j++)
+			if (max < cabsf(idata[j]))
+				max = cabsf(idata[j]);
+
+		if (0. == max)
+			max = 1.;
+	}
 
 	int rgbw = dims[xdim] * zoom;
 	int rgbh = dims[ydim] * zoom;

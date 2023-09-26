@@ -401,6 +401,20 @@
                 <property name="homogeneous">True</property>
               </packing>
             </child>
+	    <child>
+              <object class="GtkToggleToolButton" id="abswindow">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">absolute windowing</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-italic</property>
+                <signal name="clicked" handler="toogle_absolute_windowing" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -414,7 +428,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkToolItem" id="toolbutton6">
+              <object class="GtkToolItem" id="toolbar_scale1">
                 <property name="width_request">100</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -441,7 +455,29 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolItem" id="toolbutton7">
+              <object class="GtkToolItem" id="toolbar_button1">
+                <property name="width_request">100</property>
+                <property name="visible">False</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <child>
+		 <object class="GtkSpinButton" id="scale1_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="adjustment">winlow</property>
+                    	<property name="digits">3</property>
+                    	<property name="snap_to_ticks">False</property>
+                            <signal name="value-changed" handler="window_callback" swapped="no"/>
+                          </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolItem" id="toolbar_scale2">
                 <property name="width_request">100</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -468,6 +504,28 @@
               </packing>
             </child>
             <child>
+              <object class="GtkToolItem" id="toolbar_button2">
+                <property name="width_request">100</property>
+                <property name="visible">False</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <child>
+		 <object class="GtkSpinButton" id="scale2_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="adjustment">winhigh</property>
+                    	<property name="digits">3</property>
+                    	<property name="snap_to_ticks">False</property>
+                            <signal name="value-changed" handler="window_callback" swapped="no"/>
+                          </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+	    <child>
               <object class="GtkToolItem" id="toolbutton1">
                 <property name="width_request">100</property>
                 <property name="visible">True</property>

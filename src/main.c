@@ -38,10 +38,11 @@ int main(int argc, char* argv[argc])
 		ARG_TUPLE(true, &count, 1, { OPT_INFILE, sizeof(char*), &in_files, "image" }),
 	};
 
-
+	bool absolute_windowing = false;
 
 	const struct opt_s opts[] = {
 
+		OPT_SET('a', &absolute_windowing, "Use absolute windowing"),
 	};
 
 	cmdline(&argc, argv, ARRAY_SIZE(args), args, help_str, ARRAY_SIZE(opts), opts);
@@ -75,7 +76,7 @@ int main(int argc, char* argv[argc])
 
 
 		// FIXME: we never delete them
-		struct view_s* v2 = window_new(in_files[i], NULL, dims, x);
+		struct view_s* v2 = window_new(in_files[i], NULL, dims, x, absolute_windowing);
 
 		// If multiple files are passed on the commandline, add them to window
 		// list. This enables sync of windowing and so on...

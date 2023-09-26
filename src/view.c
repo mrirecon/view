@@ -60,6 +60,7 @@ struct view_s {
 
 	// representation
 	bool plot;
+	bool absolute_windowing;
 	enum mode_t mode;
 	double winhigh;
 	double winlow;
@@ -97,12 +98,19 @@ struct view_s {
 	GtkWidget* gtk_viewport;
 	GtkAdjustment* gtk_winlow;
 	GtkAdjustment* gtk_winhigh;
+	GtkSpinButton* gtk_button_winlow;
+	GtkSpinButton* gtk_button_winhigh;
+	GtkToolItem* toolbar_scale1;
+	GtkToolItem* toolbar_scale2;
+	GtkToolItem* toolbar_button1;
+	GtkToolItem* toolbar_button2;
 	GtkAdjustment* gtk_zoom;
 	GtkAdjustment* gtk_aniso;
 	GtkEntry* gtk_entry;
 	GtkToggleToolButton* gtk_transpose;
 	GtkToggleToolButton* gtk_fit;
 	GtkToggleToolButton* gtk_sync;
+	GtkToggleToolButton* gtk_absolutewindowing;
 
 	GtkAdjustment* gtk_posall[DIMS];
 	GtkCheckButton* gtk_checkall[DIMS];
@@ -242,18 +250,55 @@ extern void view_setpos(struct view_s* v, unsigned int flags, const long pos[DIM
 
 extern void view_refresh(struct view_s* v)
 {
-	v->invalid = true;
+	if (v->absolute_windowing) {
 
-	long size = md_calc_size(DIMS, v->dims);
-	double max = 0.;
-	for (long j = 0; j < size; j++)
-		if (max < cabsf(v->data[j]))
-			max = cabsf(v->data[j]);
+		long idims[DIMS];
+		md_select_dims(DIMS, MD_BIT(v->xdim) | MD_BIT(v->ydim), idims, v->dims);
+	
+		complex float* tmp = md_alloc(DIMS, idims, sizeof(complex float));
+		md_slice(DIMS, ~(MD_BIT(v->xdim) | MD_BIT(v->ydim)), v->pos, v->dims, tmp, v->data, sizeof(complex float));
 
-	if (0. == max)
-		max = 1.;
+		long size = md_calc_size(DIMS, idims);
 
-	v->max = max;
+		double max = 0.;
+		for (long j = 0; j < size; j++)
+			if (max < cabsf(tmp[j]))
+				max = cabsf(tmp[j]);
+
+		max = MIN(1.e10, max);
+
+		md_free(tmp);
+
+		if (0 == v->max) {
+
+			gtk_adjustment_set_upper(v->gtk_winhigh, max);
+			gtk_adjustment_set_value(v->gtk_winhigh, max);
+			gtk_adjustment_set_upper(v->gtk_winlow, max);
+			v->max = max;
+		}
+
+		if (v->max < max) {
+
+			gtk_adjustment_set_upper(v->gtk_winhigh, max);
+			gtk_adjustment_set_upper(v->gtk_winlow, max);
+			v->max = max;
+		}
+	} else {
+
+		long size = md_calc_size(DIMS, v->dims);
+		double max = 0.;
+
+		for (long j = 0; j < size; j++)
+			if (max < cabsf(v->data[j]))
+				max = cabsf(v->data[j]);
+		
+		max = MIN(1.e10, max);
+
+		if (0. == max)
+			max = 1.;
+
+		v->max = max;
+	}
 
 	update_view(v);
 }
@@ -606,7 +651,7 @@ extern gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 		(v->plot ? draw_plot : draw)(v->rgbw, v->rgbh, v->rgbstr,
 			(unsigned char(*)[v->rgbw][v->rgbstr / 4][4])v->rgb,
-			v->mode, 1. / v->max, v->winlow, v->winhigh, v->phrot,
+			v->mode, v->absolute_windowing ? 1. : 1. / v->max, v->winlow, v->winhigh, v->phrot,
 			v->rgbw, v->buf);
 
 		v->rgb_invalid = false;
@@ -675,7 +720,7 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	v->status_bar = false;
 
 	v->name = name;
-	v->max = 1.;
+	v->max = 0.;
 
 	v->pos = xmalloc(DIMS * sizeof(long));
 
@@ -756,6 +801,63 @@ extern gboolean toggle_plot(GtkToggleButton* button, gpointer data)
 	return FALSE;
 }
 
+static void set_windowing(struct view_s* v)
+{
+	double max = v->absolute_windowing ? v->max : 1;
+	max = MIN(1.e10, max);
+	double inc = exp(log(10) * round(log(max) / log(10.))) * 0.001;
+	int digits =  MAX(3, 3 - (int)round(log(max) / log(10.)));
+
+	gtk_adjustment_configure(v->gtk_winhigh, v->winhigh, 0, max, inc, gtk_adjustment_get_page_increment(v->gtk_winhigh), gtk_adjustment_get_page_size(v->gtk_winhigh));
+	gtk_adjustment_configure(v->gtk_winlow, v->winlow, 0, max, inc, gtk_adjustment_get_page_increment(v->gtk_winlow), gtk_adjustment_get_page_size(v->gtk_winlow));
+	gtk_spin_button_set_digits(v->gtk_button_winhigh, digits);
+	gtk_spin_button_set_digits(v->gtk_button_winlow, digits);
+
+	gtk_widget_set_visible(GTK_WIDGET(v->toolbar_scale1), v->absolute_windowing ? FALSE : TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(v->toolbar_scale2), v->absolute_windowing ? FALSE : TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(v->toolbar_button1), v->absolute_windowing ? TRUE : FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(v->toolbar_button2), v->absolute_windowing ? TRUE : FALSE);
+}
+
+extern gboolean toogle_absolute_windowing(GtkToggleToolButton* button, gpointer data)
+{
+	UNUSED(button);
+	struct view_s* v = data;
+
+	if ((TRUE == gtk_toggle_tool_button_get_active(button)) == v->absolute_windowing)
+		return FALSE;
+
+	if (v->absolute_windowing) {
+
+		long size = md_calc_size(DIMS, v->dims);
+		double max = 0.;
+		
+		for (long j = 0; j < size; j++)
+			if (max < cabsf(v->data[j]))
+				max = cabsf(v->data[j]);
+
+		max = MIN(1.e10, max);
+
+		if (0. == max)
+			max = 1.;
+
+		v->max = max;
+		v->winhigh = MIN(v->winhigh / v->max, 1);
+		v->winlow = MIN(v->winlow / v->max, 1);
+
+		v->absolute_windowing = false;
+	} else {
+
+		v->winhigh *= v->max;
+		v->winlow *= v->max;
+		v->absolute_windowing = true;
+	}
+
+	set_windowing(v);
+
+	return FALSE;
+}
+
 
 extern void set_position(struct view_s* v, unsigned int dim, unsigned int p)
 {
@@ -818,8 +920,8 @@ extern gboolean motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gp
 			double low = gtk_adjustment_get_value(v->gtk_winlow);
 			double high = gtk_adjustment_get_value(v->gtk_winhigh);
 
-			low -= (x - v->lastx) / 200.;
-			high -= (y - v->lasty) / 200.;
+			low -= (x - v->lastx) * gtk_adjustment_get_step_increment(v->gtk_winlow) * 5;
+			high -= (y - v->lasty) * gtk_adjustment_get_step_increment(v->gtk_winhigh) * 5;
 
 			if (high > low) {
 
@@ -878,7 +980,7 @@ extern gboolean window_close(GtkWidget *widget, GdkEvent* event, gpointer data)
 
 
 
-extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x)
+extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x, bool absolute_windowing)
 {
 	struct view_s* v = create_view(name, pos, dims, x);
 
@@ -921,6 +1023,18 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 	v->gtk_sync = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "sync"));
 	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(v->gtk_sync), v->sync ? TRUE : FALSE);
 
+	v->gtk_button_winlow = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "scale1_button"));
+	v->gtk_button_winhigh = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "scale2_button"));
+
+	v->toolbar_scale1 = GTK_TOOL_ITEM(gtk_builder_get_object(builder, "toolbar_scale1"));
+	v->toolbar_scale2 = GTK_TOOL_ITEM(gtk_builder_get_object(builder, "toolbar_scale2"));
+	v->toolbar_button1 = GTK_TOOL_ITEM(gtk_builder_get_object(builder, "toolbar_button1"));
+	v->toolbar_button2 = GTK_TOOL_ITEM(gtk_builder_get_object(builder, "toolbar_button2"));
+
+	v->absolute_windowing = absolute_windowing;
+	v->gtk_absolutewindowing = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(builder, "abswindow"));
+	gtk_toggle_tool_button_set_active(v->gtk_absolutewindowing , absolute_windowing ? TRUE : FALSE);
+
 	for (int j = 0; j < DIMS; j++) {
 
 		char pname[10];
@@ -955,6 +1069,7 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 	refresh_callback(NULL, v);
 	geom_callback(NULL, v);
 	window_callback(NULL, v);
+	set_windowing(v);
 
 	return v;
 }
@@ -972,7 +1087,7 @@ void window_connect_sync(struct view_s* v, struct view_s* v2)
 
 struct view_s* view_clone(struct view_s* v, const long pos[DIMS])
 {
-	struct view_s* v2 = window_new(v->name, pos, v->dims, v->data);
+	struct view_s* v2 = window_new(v->name, pos, v->dims, v->data, v->absolute_windowing);
 
 	window_connect_sync(v, v2);
 
