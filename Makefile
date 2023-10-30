@@ -17,12 +17,12 @@ ifeq ($(UNAME),Darwin)
 endif
 
 
-ifeq ($(TOOLBOX_PATH),)
+ifeq ($(BART_TOOLBOX_PATH),)
 TOOLBOX_INC=/usr/include/bart/
 TOOLBOX_LIB=/usr/lib/bart/
 else
-TOOLBOX_INC=$(TOOLBOX_PATH)/src/
-TOOLBOX_LIB=$(TOOLBOX_PATH)/lib/
+TOOLBOX_INC=$(BART_TOOLBOX_PATH)/src/
+TOOLBOX_LIB=$(BART_TOOLBOX_PATH)/lib/
 endif
 
 
