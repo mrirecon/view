@@ -256,7 +256,13 @@ extern void view_refresh(struct view_s* v)
 		md_select_dims(DIMS, MD_BIT(v->xdim) | MD_BIT(v->ydim), idims, v->dims);
 	
 		complex float* tmp = md_alloc(DIMS, idims, sizeof(complex float));
-		md_slice(DIMS, ~(MD_BIT(v->xdim) | MD_BIT(v->ydim)), v->pos, v->dims, tmp, v->data, sizeof(complex float));
+		
+		long pos[DIMS];
+		md_copy_dims(DIMS, pos, v->pos);
+		pos[v->xdim] = 0;
+		pos[v->ydim] = 0;
+
+		md_slice(DIMS, ~(MD_BIT(v->xdim) | MD_BIT(v->ydim)), pos, v->dims, tmp, v->data, sizeof(complex float));
 
 		long size = md_calc_size(DIMS, idims);
 
