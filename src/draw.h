@@ -2,10 +2,7 @@
 #include <complex.h>
 #include <stdbool.h>
 
-
-enum mode_t { MAGN, MAGN_VIRIDS, CMPL, CMPL_MYGBM, PHSE, PHSE_MYGBM, REAL, MAGN_TURBO, FLOW, LIPARI_T1, NAVIA_T2 };
-enum flip_t { OO, XO, OY, XY };
-enum interp_t { NLINEAR, NLINEARMAG, NEAREST, LIINCO };
+#include "view.h"
 
 extern complex float sample(int N, const float pos[N], const long dims[N], const long strs[N], enum interp_t interpolation, const complex float* in);
 
