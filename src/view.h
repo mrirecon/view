@@ -37,6 +37,17 @@ struct view_settings_s {
 	enum interp_t interpolation;
 };
 
+struct view_ui_geom_params_s {
+	int N;
+	bool* selected;
+
+	double zoom;
+	double aniso;
+
+	bool transpose;
+
+};
+
 struct view_s {
 	const char* name;
 	struct view_settings_s settings;
@@ -51,16 +62,30 @@ struct view_s {
 	struct view_s* next;
 	struct view_s* prev;
 	bool sync;
+
+	// shared state (owned by controller)
+	double win_high_max;
+	double win_low_max;
 };
 
 
-extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x, _Bool absolute_windowing);
+extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const _Complex float* x, _Bool absolute_windowing);
 
 extern void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom)[3][3]);
 extern void window_connect_sync(struct view_s* a, struct view_s* b);
 
 extern void view_refresh(struct view_s* v);
-extern void view_setpos(struct view_s* v, unsigned int flags, const long pos[DIMS]);
 extern struct view_s* view_clone(struct view_s* v, const long pos[DIMS]);
+extern const long *view_get_dims(struct view_s* v);
+
+extern void view_set_geom(struct view_s* v, struct view_ui_geom_params_s gp);
+extern void view_refresh(struct view_s* v);
+
+extern void view_touch_rgb_settings(struct view_s* v);
+
+extern char *construct_filename_view2(struct view_s* v);
+
+extern bool view_save_png(struct view_s* v, const char *filename);
+extern bool view_save_pngmovie(struct view_s* v, const char *folder);
 
 #endif

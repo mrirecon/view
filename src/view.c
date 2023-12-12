@@ -112,78 +112,6 @@ extern void update_geom(struct view_s* v)
 }
 
 
-extern gboolean update_view(struct view_s* v)
-{
-	if (NULL != v->ui->source)
-		cairo_surface_destroy(v->ui->source);
-
-	v->control->rgbw = v->control->dims[v->settings.xdim] * v->settings.xzoom;
-	v->control->rgbh = v->control->dims[v->settings.ydim] * v->settings.yzoom;
-	v->control->rgbstr = 4 * v->control->rgbw;
-	v->control->rgb = realloc(v->control->rgb, v->control->rgbh * v->control->rgbstr);
-
-	v->control->buf = realloc(v->control->buf, v->control->rgbh * v->control->rgbw * sizeof(complex float));
-
-	v->ui->source = cairo_image_surface_create_for_data(v->control->rgb,
-                             CAIRO_FORMAT_RGB24, v->control->rgbw, v->control->rgbh, v->control->rgbstr);
-
-	// trigger redraw
-
-	gtk_widget_set_size_request(v->ui->gtk_drawingarea, v->control->rgbw, v->control->rgbh);
-	gtk_widget_queue_draw(v->ui->gtk_drawingarea);
-
-	return FALSE;
-}
-
-
-extern gboolean fit_callback(GtkWidget* /*widget*/, gpointer data)
-{
-	struct view_s* v = data;
-
-	gboolean flag = gtk_toggle_tool_button_get_active(v->ui->gtk_fit);
-
-	if (!flag)
-		return FALSE;
-
-	double aniso = gtk_adjustment_get_value(v->ui->gtk_aniso);
-
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(v->ui->gtk_viewport, &alloc);
-	double xz = (double)(alloc.width - 5) / (double)v->control->dims[v->settings.xdim];
-	double yz = (double)(alloc.height - 5) / (double)v->control->dims[v->settings.ydim];
-
-
-	if (yz > xz / aniso)
-		yz = xz / aniso; // aniso
-
-	gtk_adjustment_set_value(v->ui->gtk_zoom, yz);
-
-	return FALSE;
-}
-
-
-extern gboolean configure_callback(GtkWidget *widget, GdkEvent* /*event*/, gpointer data)
-{
-	return fit_callback(widget, data);
-}
-
-
-extern void view_setpos(struct view_s* v, unsigned int flags, const long pos[DIMS])
-{
-	for (unsigned int i = 0; i < DIMS; i++) {
-
-		if (MD_IS_SET(flags, i)) {
-
-			gtk_adjustment_set_value(v->ui->gtk_posall[i], pos[i]);
-
-			for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
-				if (v->sync && v2->sync)
-					gtk_adjustment_set_value(v2->ui->gtk_posall[i], pos[i]);
-		}
-	}
-}
-
-
 extern void view_refresh(struct view_s* v)
 {
 	if (v->settings.absolute_windowing) {
@@ -213,17 +141,22 @@ extern void view_refresh(struct view_s* v)
 
 		if (0 == v->control->max) {
 
-			gtk_adjustment_set_upper(v->ui->gtk_winhigh, max);
-			gtk_adjustment_set_value(v->ui->gtk_winhigh, max);
-			gtk_adjustment_set_upper(v->ui->gtk_winlow, max);
+			v->win_high_max = max;
+			v->win_low_max = max;
+			v->settings.winhigh = max;
 			v->control->max = max;
+
+			ui_set_limits(v);
+			ui_set_values(v);
 		}
 
 		if (v->control->max < max) {
 
-			gtk_adjustment_set_upper(v->ui->gtk_winhigh, max);
-			gtk_adjustment_set_upper(v->ui->gtk_winlow, max);
+			v->win_high_max = max;
+			v->win_low_max = max;
 			v->control->max = max;
+
+			ui_set_limits(v);
 		}
 	} else {
 
@@ -242,7 +175,7 @@ extern void view_refresh(struct view_s* v)
 		v->control->max = max;
 	}
 
-	update_view(v);
+	ui_trigger_redraw(v);
 }
 
 
@@ -256,50 +189,29 @@ extern void view_add_geometry(struct view_s* v, unsigned long flags, const float
 }
 
 
-extern gboolean refresh_callback(GtkWidget* /*widget*/, gpointer data)
+void view_set_geom(struct view_s* v, struct view_ui_geom_params_s gp)
 {
-	view_refresh(data);
-	return FALSE;
-}
-
-
-extern gboolean geom_callback(GtkWidget* /*widget*/, gpointer data)
-{
-	struct view_s* v = data;
-
-
-	// Avoid calling this function from itself.
-	// Toggling the GTK_TOOGLE_BUTTONs below would normally lead to another call of this function.
-	static bool in_callback = false;
-	if (in_callback)
-		return FALSE;
-	in_callback = true;
-
 	for (int j = 0; j < DIMS; j++) {
-
-		v->settings.pos[j] = gtk_adjustment_get_value(v->ui->gtk_posall[j]);
-		bool check = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[j]));
-
-		if (!check)
+		if (!gp.selected[j])
 			continue;
 
 		if (1 == v->control->dims[j]) {
 
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[j]), FALSE);
+			gp.selected[j] = false;
 		} else if ((j != v->settings.xdim) && (j != v->settings.ydim)) {
 
 			for (int i = 0; i < DIMS; i++) {
 
 				if (v->settings.xdim == (DIMS + j - i) % DIMS) {
 
-					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[v->settings.xdim]), FALSE);
+					gp.selected[v->settings.xdim] = false;
 					v->settings.xdim = j;
 					break;
 				}
 
 				if (v->settings.ydim == (DIMS + j - i) % DIMS) {
 
-					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[v->settings.ydim]), FALSE);
+					gp.selected[v->settings.ydim] = false;
 					v->settings.ydim = j;
 					break;
 				}
@@ -308,19 +220,15 @@ extern gboolean geom_callback(GtkWidget* /*widget*/, gpointer data)
 		}
 	}
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[v->settings.xdim]), TRUE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[v->settings.ydim]), TRUE);
+	gp.selected[v->settings.xdim] = true;
+	gp.selected[v->settings.ydim] = true;
 
-	double zoom = gtk_adjustment_get_value(v->ui->gtk_zoom);
-	double aniso = gtk_adjustment_get_value(v->ui->gtk_aniso);
-	v->settings.xzoom = zoom * aniso;
-	v->settings.yzoom = zoom;
+	ui_set_selected_dims(v, gp.selected);
 
-	v->settings.flip = gtk_combo_box_get_active(v->ui->gtk_flip);
-	v->settings.interpolation = gtk_combo_box_get_active(v->ui->gtk_interp);
-	v->control->transpose = gtk_toggle_tool_button_get_active(v->ui->gtk_transpose);
+	v->settings.xzoom = gp.zoom * gp.aniso;
+	v->settings.yzoom = gp.zoom;
 
-	if (v->control->transpose) {
+	if (gp.transpose) {
 
 		if (v->settings.xdim < v->settings.ydim) {
 
@@ -328,7 +236,6 @@ extern gboolean geom_callback(GtkWidget* /*widget*/, gpointer data)
 			v->settings.xdim = v->settings.ydim;
 			v->settings.ydim = swp;
 		}
-
 	} else {
 
 		if (v->settings.xdim > v->settings.ydim) {
@@ -345,35 +252,25 @@ extern gboolean geom_callback(GtkWidget* /*widget*/, gpointer data)
 	v->invalid = true;
 
 	update_geom(v);
-	update_view(v);
-
-	in_callback = false;
-	return FALSE;
+	ui_trigger_redraw(v);
 }
 
-extern gboolean window_callback(GtkWidget* /*widget*/, gpointer data)
+void view_touch_rgb_settings(struct view_s* v)
 {
-	struct view_s* v = data;
-
-	v->settings.mode = gtk_combo_box_get_active(v->ui->gtk_mode);
-	v->settings.winlow = gtk_adjustment_get_value(v->ui->gtk_winlow);
-	v->settings.winhigh = gtk_adjustment_get_value(v->ui->gtk_winhigh);
-
 	for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
 
 		if (v->sync && v2->sync) {
 
-			gtk_adjustment_set_value(v2->ui->gtk_winlow, v->settings.winlow);
-			gtk_adjustment_set_value(v2->ui->gtk_winhigh, v->settings.winhigh);
-			gtk_combo_box_set_active(v2->ui->gtk_mode, v->settings.mode);
+			v2->settings.mode = v->settings.mode;
+			v2->settings.winlow = v->settings.winlow;
+			v2->settings.winhigh= v->settings.winhigh;
+			ui_set_values(v2);
 		}
 	}
 
 	v->rgb_invalid = true;
 
-	update_view(v);
-
-	return FALSE;
+	ui_trigger_redraw(v);
 }
 
 static void update_buf_view(struct view_s* v)
@@ -384,119 +281,53 @@ static void update_buf_view(struct view_s* v)
 }
 
 
-extern gboolean save_callback(GtkWidget* /*widget*/, gpointer data)
+char *construct_filename_view2(struct view_s* v)
 {
-	struct view_s* v = data;
-
 	long loopdims[DIMS];
 	md_select_dims(DIMS, ~(MD_BIT(v->settings.xdim) | MD_BIT(v->settings.ydim)), loopdims, v->control->dims);
 
-	char* name = construct_filename_view(DIMS, loopdims, v->settings.pos, v->name, "png");
+	return construct_filename_view(DIMS, loopdims, v->settings.pos, v->name, "png");
+}
 
-	v->ui->dialog = gtk_file_chooser_dialog_new("Save File",
-                                      v->ui->window,
-				      GTK_FILE_CHOOSER_ACTION_SAVE,
-                                      "Cancel",
-                                      GTK_RESPONSE_CANCEL,
-                                      "Save",
-                                      GTK_RESPONSE_ACCEPT,
-                                      NULL);
-
-	v->ui->chooser = GTK_FILE_CHOOSER(v->ui->dialog);
-
-	gtk_file_chooser_set_current_name(v->ui->chooser, basename(name));
-	
-	char* dname = strdup(v->name);
-
-	// Outputfolder = Inputfolder
-	gtk_file_chooser_set_current_folder(v->ui->chooser, dirname(dname));
-	gtk_file_chooser_set_do_overwrite_confirmation(v->ui->chooser, TRUE);
-
-	gint res = gtk_dialog_run(GTK_DIALOG(v->ui->dialog));
-
-	if (GTK_RESPONSE_ACCEPT == res) {
-
-		// export single image
-		char *filename = gtk_file_chooser_get_filename(v->ui->chooser);
-
-		if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->ui->source, filename))
-			gtk_entry_set_text(v->ui->gtk_entry, "Error: writing image file.\n");
-
-		gtk_entry_set_text(v->ui->gtk_entry, "Saved!");
-
-		g_free(filename);
-	}
-
-	gtk_widget_destroy (v->ui->dialog);
-
-	xfree(name);
-	xfree(dname);
-
-	return FALSE;
+bool view_save_png(struct view_s* v, const char *filename)
+{
+	return gtk_ui_save_png(v, filename);
 }
 
 
-
-extern gboolean save_movie_callback(GtkWidget* /*widget*/, gpointer data)
+extern bool view_save_pngmovie(struct view_s* v, const char *folder)
 {
-	struct view_s* v = data;
-
 	int frame_dim = 10;
 
-	v->ui->dialog = gtk_file_chooser_dialog_new("Export movie to folder",
-						v->ui->window,
-						GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-						"Cancel",
-						GTK_RESPONSE_CANCEL,
-						"Export",
-						GTK_RESPONSE_ACCEPT,
-						NULL);
+	for (unsigned int f = 0; f < v->control->dims[frame_dim]; f++) {
 
-	v->ui->chooser = GTK_FILE_CHOOSER(v->ui->dialog);
+		v->settings.pos[frame_dim] = f;
+		update_buf_view(v);
 
+		draw(v->control->rgbw, v->control->rgbh, v->control->rgbstr, (unsigned char(*)[v->control->rgbw][v->control->rgbstr / 4][4])v->control->rgb,
+			v->settings.mode, 1. / v->control->max, v->settings.winlow, v->settings.winhigh, v->settings.phrot,
+			v->control->rgbw, v->control->buf);
 
-	char* dname = strdup(v->name);
+		char output_name[256];
+		int len = snprintf(output_name, 256, "%s/mov-%04d.png", folder, f);
 
-	// Outputfolder = Inputfolder
-	gtk_file_chooser_set_current_folder(v->ui->chooser, dirname(dname));
+		if (len + 1 >= sizeof(output_name)) {
 
-	gint res = gtk_dialog_run(GTK_DIALOG (v->ui->dialog));
-
-	if (GTK_RESPONSE_ACCEPT == res) {
-
-		char *chosen_dir = gtk_file_chooser_get_filename(v->ui->chooser);
-
-		for (unsigned int f = 0; f < v->control->dims[frame_dim]; f++) {
-
-			v->settings.pos[frame_dim] = f;
-			update_buf_view(v);
-
-			draw(v->control->rgbw, v->control->rgbh, v->control->rgbstr, (unsigned char(*)[v->control->rgbw][v->control->rgbstr / 4][4])v->control->rgb,
-				v->settings.mode, 1. / v->control->max, v->settings.winlow, v->settings.winhigh, v->settings.phrot,
-				v->control->rgbw, v->control->buf);
-
-			char output_name[256];
-			int len = snprintf(output_name, 256, "%s/mov-%04d.png", chosen_dir, f);
-
-			if (len + 1 >= sizeof(output_name)) {
-
-				gtk_entry_set_text(v->ui->gtk_entry, "Error: writing image file.\n");
-				break;
-			}
-
-			if (CAIRO_STATUS_SUCCESS != cairo_surface_write_to_png(v->ui->source, output_name))
-				gtk_entry_set_text(v->ui->gtk_entry, "Error: writing image file.\n");
+			ui_set_msg(v, "Error: writing image file.\n");
+			goto fail;
 		}
 
-		g_free(chosen_dir);
-		gtk_entry_set_text(v->ui->gtk_entry, "Movie exported.");
+		if (gtk_ui_save_png(v, output_name)) {
+
+			ui_set_msg(v, "Error: writing image file.\n");
+			goto fail;
+		}
 	}
 
-	gtk_widget_destroy (v->ui->dialog);
+	return true;
 
-	xfree(dname);
-
-	return FALSE;
+fail:
+	return false;
 }
 
 
@@ -551,7 +382,7 @@ static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s x
 static void clear_status_bar(struct view_s* v)
 {
 	char buf = '\0';
-	gtk_entry_set_text(v->ui->gtk_entry, &buf);
+	ui_set_msg(v, &buf);
 }
 
 
@@ -567,7 +398,7 @@ static void update_status_bar(struct view_s* v, const float (*pos)[DIMS])
 	snprintf(buf, 100, "Pos: %03d %03d Magn: %.3e Val: %+.3e%+.3ei Arg: %+.2f", x2, y2,
 			cabsf(val), crealf(val), cimagf(val), cargf(val));
 
-	gtk_entry_set_text(v->ui->gtk_entry, buf);
+	ui_set_msg(v, buf);
 }
 
 
@@ -575,7 +406,13 @@ extern gboolean draw_callback(GtkWidget* /*widget*/, cairo_t *cr, gpointer data)
 {
 	struct view_s* v = data;
 
+	v->control->rgbw = v->control->dims[v->settings.xdim] * v->settings.xzoom;
+	v->control->rgbh = v->control->dims[v->settings.ydim] * v->settings.yzoom;
+	v->control->rgbstr = 4 * v->control->rgbw;
+
 	if (v->invalid) {
+
+		v->control->buf = realloc(v->control->buf, v->control->rgbh * v->control->rgbw * sizeof(complex float));
 
 		update_buf_view(v);
 
@@ -584,6 +421,10 @@ extern gboolean draw_callback(GtkWidget* /*widget*/, cairo_t *cr, gpointer data)
 	}
 
 	if (v->rgb_invalid) {
+
+		ui_rgbbuffer_disconnect(v);
+		v->control->rgb = realloc(v->control->rgb, v->control->rgbh * v->control->rgbstr);
+		ui_rgbbuffer_connect(v, v->control->rgbw, v->control->rgbh, v->control->rgbstr, v->control->rgb);
 
 		(v->settings.plot ? draw_plot : draw)(v->control->rgbw, v->control->rgbh, v->control->rgbstr,
 			(unsigned char(*)[v->control->rgbw][v->control->rgbstr / 4][4])v->control->rgb,
@@ -732,7 +573,7 @@ extern gboolean toggle_plot(GtkToggleButton* /*button*/, gpointer data)
 		v->settings.plot ? FALSE : TRUE);
 
 	v->invalid = true;
-	update_view(v);
+	ui_trigger_redraw(v);
 
 	return FALSE;
 }
@@ -822,7 +663,7 @@ extern gboolean button_press_event(GtkWidget* /*widget*/, GdkEventButton *event,
 		clear_status_bar(v);
 
 		v->rgb_invalid = true;
-		update_view(v);
+		ui_trigger_redraw(v);
 	}
 
 	if (event->button == GDK_BUTTON_SECONDARY) {
@@ -997,9 +838,9 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 	nr_windows++;
 
 //	fit_callback(NULL, v);
-	refresh_callback(NULL, v);
-	geom_callback(NULL, v);
-	window_callback(NULL, v);
+	view_refresh(v);
+	ui_pull_geom(v);
+	ui_pull_window(v);
 	set_windowing(v);
 
 	return v;
@@ -1013,7 +854,7 @@ void window_connect_sync(struct view_s* v, struct view_s* v2)
 	v2->prev = v;
 	v->next = v2;
 
-	window_callback(NULL, v);
+	view_touch_rgb_settings(v);
 }
 
 struct view_s* view_clone(struct view_s* v, const long pos[DIMS])
@@ -1034,4 +875,7 @@ extern gboolean window_clone(GtkWidget* /*widget*/, gpointer data)
 	return FALSE;
 }
 
-
+const long *view_get_dims(struct view_s* v)
+{
+	return v->control->dims;
+}

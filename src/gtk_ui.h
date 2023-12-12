@@ -3,6 +3,8 @@
 #include <pango/pangocairo.h>
 #include <cairo.h>
 
+#include "view.h"
+
 #undef MIN
 #undef MAX
 
@@ -44,3 +46,20 @@ struct view_gtk_ui_s {
 	GtkFileChooser *chooser; // Save dialog
 	GtkWindow *window;
 };
+
+
+extern void ui_trigger_redraw(struct view_s* v);
+
+extern void ui_rgbbuffer_disconnect(struct view_s* v);
+extern void ui_rgbbuffer_connect(struct view_s* v, int rgbw, int rgbh, int rgbstr, unsigned char* buf);
+
+extern void ui_set_selected_dims(struct view_s* v, const bool* selected);
+extern void ui_set_limits(struct view_s* v);
+extern void ui_set_values(struct view_s* v);
+
+extern void ui_pull_geom(struct view_s* v);
+extern void ui_pull_window(struct view_s* v);
+
+extern void ui_set_msg(struct view_s* v, const char* msg);
+
+extern bool gtk_ui_save_png(struct view_s* v, const char* filename);
