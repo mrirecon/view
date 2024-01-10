@@ -1,9 +1,6 @@
-/* Copyright 2015-2016. Martin Uecker.
+/* Copyright 2015-2023. Martin Uecker.
  * All rights reserved. Use of this source code is governed by
  * a BSD-style license which can be found in the LICENSE file.
- *
- * Author:
- *	2015-2016 Martin Uecker <martin.uecker@med.uni-goettinge.de>
  */
 
 #include <complex.h>
@@ -16,8 +13,13 @@
 
 #include "misc/misc.h"
 #include "misc/mmio.h"
-#include "misc/io.h"
 #include "misc/opts.h"
+#if 0
+#include "misc/io.h"
+#else
+extern void io_reserve_input(const char* name);
+extern void io_unregister(const char* name);
+#endif
 
 #include "view.h"
 

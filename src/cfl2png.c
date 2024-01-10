@@ -1,3 +1,7 @@
+/* Copyright 2017-2023. AG Uecker. University Medical Center Göttingen.
+ * All rights reserved. Use of this source code is governed by
+ * a BSD-style license which can be found in the LICENSE file.
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -11,9 +15,14 @@
 #include "misc/misc.h"
 #include "misc/debug.h"
 #include "misc/mmio.h"
-#include "misc/io.h"
 #include "misc/opts.h"
 #include "misc/png.h"
+#if 0
+#include "misc/io.h"
+#else
+extern void io_reserve_input(const char* name);
+extern void io_unregister(const char* name);
+#endif
 
 #include "draw.h"
 
