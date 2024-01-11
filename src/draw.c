@@ -79,21 +79,15 @@ static void trans_real(double rgb[3], double a, double b, complex double value)
 	rgb[2] *= 0.;
 }
 
-static void trans_phase(double rgb[3], double a, double b, complex double value)
+static void trans_phase(double rgb[3], double /*a*/, double /*b*/, complex double value)
 {
-	UNUSED(a);
-	UNUSED(b);
-
 	rgb[0] *= (1. + sin(carg(value) + 0. * 2. * M_PI / 3.)) / 2.;
 	rgb[1] *= (1. + sin(carg(value) + 1. * 2. * M_PI / 3.)) / 2.;
 	rgb[2] *= (1. + sin(carg(value) + 2. * 2. * M_PI / 3.)) / 2.;
 }
 
-static void trans_phase_MYGBM(double rgb[3], double a, double b, complex double value)
+static void trans_phase_MYGBM(double rgb[3], double /*a*/, double /*b*/, complex double value)
 {
-	UNUSED(a);
-	UNUSED(b);
-
 	double arg = carg(value);
 
 	if (isfinite(arg)) {
