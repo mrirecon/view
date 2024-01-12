@@ -35,7 +35,7 @@ extern void io_unregister(const char* name);
 #endif
 
 
-static void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], bool absolute_windowing, float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], const complex float* idata);
+static void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], bool absolute_windowing, float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], unsigned long loopflags, long pos[DIMS], const complex float* idata);
 
 
 static const char help_str[] = "Export images to png.";
@@ -62,6 +62,11 @@ int main(int argc, char* argv[argc])
 	float zoom =2.f;
 	enum flip_t flip = OO;
 	enum interp_t interpolation = NLINEAR;
+	unsigned long sliceflags = 0;
+	
+	long pos[DIMS] = { [0 ... DIMS - 1] = 0  };
+	long pos_slc[DIMS] = { [0 ... DIMS - 1] = 0  };
+	int pos_count = 0;
 
 	struct opt_s modeopt[] = {
 		OPT_SELECT('M', enum mode_t, &mode, MAGN, 		"magnitude gray (default) "),
@@ -100,6 +105,13 @@ int main(int argc, char* argv[argc])
 		OPT_SUBOPT('F', "flip", "flip. -Fh for help.", ARRAY_SIZE(flipopt), flipopt),
 		OPT_SUBOPT('I', "interp", "interp. -Ih for help.", ARRAY_SIZE(interpopt), interpopt),
 		OPT_INT('d', &debug_level, "level", "Debug level"),
+		OPT_ULONG('S', &sliceflags, "flags", "slice selected dims"),
+#ifdef OPT_VECC
+		OPT_VECC('P', &pos_count, pos_slc, "position for sliced dimensions"),
+#endif
+#ifdef OPT_VECN
+		OPT_VECN('p', pos, "(provide all positions (useful if position is exported from view))"),
+#endif
 	};
 
 	cmdline(&argc, argv, ARRAY_SIZE(args), args, help_str, ARRAY_SIZE(opts), opts);
@@ -111,6 +123,17 @@ int main(int argc, char* argv[argc])
 
 	assert((0 <= xdim) && (xdim < DIMS));
 	assert((0 <= ydim) && (ydim < DIMS));
+
+	assert(0 == pos_count || pos_count == bitcount(sliceflags));
+	
+	if (0 < pos_count) {
+
+		for (int i = 0, ip = 0; i < DIMS; i++) {
+
+			if (MD_IS_SET(sliceflags, i))
+				pos[i] = pos_slc[ip++];
+		}
+	}
 
 	/*
 	 * If the filename ends in ".hdr", ".cfl" or just "." (from
@@ -140,7 +163,7 @@ int main(int argc, char* argv[argc])
 			*ext = '\0';
 	}
 
-	export_images(out_prefix, xdim, ydim, windowing, absolute_windowing, zoom, mode, flip, interpolation, dims, idata);
+	export_images(out_prefix, xdim, ydim, windowing, absolute_windowing, zoom, mode, flip, interpolation, dims, ~sliceflags, pos, idata);
 
 
 	unmap_cfl(DIMS, dims, idata);
@@ -166,7 +189,7 @@ static void unravel_index(int D, long pos[D], unsigned long flags, const long di
 	}
 }
 
-void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], bool absolute_windowing, float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], const complex float* idata)
+void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], bool absolute_windowing, float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], unsigned long loopflags, long _pos[DIMS], const complex float* idata)
 {
 	if (xdim == ydim) {
 
@@ -204,10 +227,10 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 
 	// loop over all dims other than xdim and ydim
 	long loopdims[DIMS];
-	unsigned long imflags = (MD_BIT(xdim)|MD_BIT(ydim));
-	md_select_dims(DIMS, ~imflags, loopdims, dims);
+	loopflags &= ~(MD_BIT(xdim)|MD_BIT(ydim));
+	md_select_dims(DIMS, loopflags, loopdims, dims);
 
-	debug_printf(DP_DEBUG3, "imflags: %lu\nloopdims: ", imflags);
+	debug_printf(DP_DEBUG3, "imflags: %lu\nloopdims: ", (MD_BIT(xdim)|MD_BIT(ydim)));
 	debug_print_dims(DP_DEBUG3, DIMS, loopdims);
 
 
@@ -219,8 +242,13 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 #pragma omp parallel for
 	for (unsigned long d = 0l; d < md_calc_size(DIMS, loopdims); ++d) {
 
-		long pos[DIMS] = { [0 ... DIMS - 1] = 0  };
-		unravel_index(DIMS, pos, ~0L, loopdims, d);
+		long pos[DIMS];
+		md_copy_dims(DIMS, pos, _pos);
+
+		for (int i = 0; i < DIMS; i++)
+			pos[i] = MIN(pos[i], dims[i] - 1);
+
+		unravel_index(DIMS, pos, loopflags, loopdims, d);
 
 		debug_printf(DP_DEBUG3, "\ti: %lu\n\t", d);
 		debug_print_dims(DP_DEBUG3, DIMS, pos);
