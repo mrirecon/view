@@ -4,12 +4,11 @@
  */
 
 #define _GNU_SOURCE
-#include <unistd.h>
 #include <complex.h>
 #include <stdbool.h>
 #include <math.h>
 
-#include <libgen.h>
+#include <stdio.h>
 
 #include "gtk_ui.h"
 
@@ -87,7 +86,7 @@ static void add_text(cairo_surface_t* surface, int x, int y, int size, const cha
 }
 #endif
 
-extern void update_geom(struct view_s* v)
+void update_geom(struct view_s* v)
 {
 	if (NULL == v->control->geom)
 		return;
@@ -122,15 +121,15 @@ void view_sync_windowing(struct view_s* v)
 	}
 }
 
-extern void view_refresh(struct view_s* v)
+void view_refresh(struct view_s* v)
 {
 	if (v->settings.absolute_windowing) {
 
 		long idims[DIMS];
 		md_select_dims(DIMS, MD_BIT(v->settings.xdim) | MD_BIT(v->settings.ydim), idims, v->control->dims);
-	
+
 		complex float* tmp = md_alloc(DIMS, idims, sizeof(complex float));
-		
+
 		long pos[DIMS];
 		md_copy_dims(DIMS, pos, v->settings.pos);
 		pos[v->settings.xdim] = 0;
@@ -176,7 +175,7 @@ extern void view_refresh(struct view_s* v)
 		for (long j = 0; j < size; j++)
 			if (max < cabsf(v->control->data[j]))
 				max = cabsf(v->control->data[j]);
-		
+
 		max = MIN(1.e10, max);
 
 		if (0. == max)
@@ -189,7 +188,7 @@ extern void view_refresh(struct view_s* v)
 }
 
 
-extern void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom)[3][3])
+void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom)[3][3])
 {
 	v->control->geom_flags = flags;
 	v->control->geom = geom;
@@ -295,7 +294,7 @@ bool view_save_png(struct view_s* v, const char *filename)
 }
 
 
-extern bool view_save_pngmovie(struct view_s* v, const char *folder)
+bool view_save_pngmovie(struct view_s* v, const char *folder)
 {
 	int frame_dim = 10;
 
@@ -484,7 +483,7 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 
 	struct view_s* v = xmalloc(sizeof(struct view_s));
 	v->control = xmalloc(sizeof(struct view_control_s));
-	v->ui = xmalloc(sizeof(struct view_gtk_ui_s));
+	v->ui = NULL;
 
 	v->next = v->prev = v;
 	v->sync = true;
@@ -508,7 +507,6 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	v->settings.xzoom = 2.;
 	v->settings.yzoom = 2.;
 
-	v->ui->source = NULL;
 	v->control->rgb = NULL;
 	v->control->buf = NULL;
 
@@ -563,7 +561,7 @@ void view_toggle_absolute_windowing(struct view_s* v)
 
 		long size = md_calc_size(DIMS, v->control->dims);
 		double max = 0.;
-		
+
 		for (long j = 0; j < size; j++)
 			if (max < cabsf(v->control->data[j]))
 				max = cabsf(v->control->data[j]);
@@ -648,7 +646,7 @@ void view_windowing_release(struct view_s* v)
 
 static int nr_windows = 0;
 
-extern void view_window_close(struct view_s* v)
+void view_window_close(struct view_s* v)
 {
 	delete_view(v);
 
@@ -659,7 +657,7 @@ extern void view_window_close(struct view_s* v)
 
 
 
-extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x, bool absolute_windowing)
+struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x, bool absolute_windowing)
 {
 	struct view_s* v = create_view(name, pos, dims, x);
 	v->settings.absolute_windowing = absolute_windowing;

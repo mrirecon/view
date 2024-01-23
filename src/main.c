@@ -6,11 +6,6 @@
 #include <complex.h>
 #include <string.h>
 
-#include <gtk/gtk.h>
-
-#undef MAX
-#undef MIN
-
 #include "misc/misc.h"
 #include "misc/mmio.h"
 #include "misc/opts.h"
@@ -22,6 +17,7 @@ extern void io_unregister(const char* name);
 #endif
 
 #include "view.h"
+#include "gtk_ui.h"
 
 
 
@@ -30,8 +26,7 @@ static const char help_str[] = "View images.";
 
 int main(int argc, char* argv[argc])
 {
-	gtk_disable_setlocale();
-	gtk_init(&argc, &argv);
+	ui_init(&argc, &argv);
 
 	long count;
 	const char** in_files;
@@ -94,7 +89,7 @@ int main(int argc, char* argv[argc])
 		}
 	}
 
-	gtk_main();
+	ui_main();
 
 	return 0;
 }

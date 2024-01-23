@@ -1,38 +1,64 @@
-#include "view.h"
 #define _GNU_SOURCE
 
-#include "gtk_ui.h"
+#include <gtk/gtk.h>
+#include <pango/pango.h>
+#include <pango/pangocairo.h>
+#include <cairo.h>
+#undef MIN
+#undef MAX
 
-#include "misc/misc.h"
-#define UNUSED(x) (void)(x)
 #include <libgen.h>
 #include <string.h>
+
+#include "gtk_ui.h"
+#include "view.h"
+
+#include "misc/misc.h"
 
 #define STRINGIFY(x) # x
 const char* viewer_gui =
 #include "viewer.inc"
 ;
 
-void ui_trigger_redraw(struct view_s* v)
-{
-	gtk_widget_queue_draw(v->ui->gtk_drawingarea);
-}
 
-void ui_rgbbuffer_disconnect(struct view_s* v)
-{
-	if (NULL != v->ui->source)
-		cairo_surface_destroy(v->ui->source);
-}
+struct view_gtk_ui_s {
 
-void ui_rgbbuffer_connect(struct view_s* v, int rgbw, int rgbh, int rgbstr, unsigned char *buf)
-{
-	gtk_widget_set_size_request(v->ui->gtk_drawingarea, rgbw, rgbh);
-	v->ui->source = cairo_image_surface_create_for_data(buf, CAIRO_FORMAT_RGB24, rgbw, rgbh, rgbstr);
-}
+	// UI
+	cairo_surface_t* source;
 
-extern gboolean fit_callback(GtkWidget *widget, gpointer data)
+	// widgets
+	GtkComboBox* gtk_mode;
+	GtkComboBox* gtk_flip;
+	GtkComboBox* gtk_interp;
+	GtkWidget* gtk_drawingarea;
+	GtkWidget* gtk_viewport;
+	GtkAdjustment* gtk_winlow;
+	GtkAdjustment* gtk_winhigh;
+	GtkSpinButton* gtk_button_winlow;
+	GtkSpinButton* gtk_button_winhigh;
+	GtkToolItem* toolbar_scale1;
+	GtkToolItem* toolbar_scale2;
+	GtkToolItem* toolbar_button1;
+	GtkToolItem* toolbar_button2;
+	GtkAdjustment* gtk_zoom;
+	GtkAdjustment* gtk_aniso;
+	GtkEntry* gtk_entry;
+	GtkToggleToolButton* gtk_transpose;
+	GtkToggleToolButton* gtk_fit;
+	GtkToggleToolButton* gtk_sync;
+	GtkToggleToolButton* gtk_absolutewindowing;
+
+	GtkAdjustment* gtk_posall[DIMS];
+	GtkCheckButton* gtk_checkall[DIMS];
+
+	GtkWidget *dialog; // Save dialog
+	GtkFileChooser *chooser; // Save dialog
+	GtkWindow *window;
+};
+
+
+extern gboolean fit_callback(GtkWidget* /*widget*/, gpointer data)
 {
-	UNUSED(widget);
 	struct view_s* v = data;
 
 	gboolean flag = gtk_toggle_tool_button_get_active(v->ui->gtk_fit);
@@ -56,32 +82,9 @@ extern gboolean fit_callback(GtkWidget *widget, gpointer data)
 	return FALSE;
 }
 
-
-extern gboolean configure_callback(GtkWidget *widget, GdkEvent* event, gpointer data)
+extern gboolean configure_callback(GtkWidget *widget, GdkEvent* /*event*/, gpointer data)
 {
-	UNUSED(event);
 	return fit_callback(widget, data);
-}
-
-void ui_set_selected_dims(struct view_s* v, const bool* selected)
-{
-	// Avoid calling this function from itself.
-	// Toggling the GTK_TOOGLE_BUTTONs below would normally lead to another call of this function.
-	static bool in_callback = false;
-	if (in_callback)
-		return;
-
-	in_callback = true;
-
-	for (int i = 0; i < DIMS; i++) {
-
-		if (selected[i])
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[i]), TRUE);
-		else
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[i]), FALSE);
-	}
-
-	in_callback = false;
 }
 
 extern gboolean geom_callback(GtkWidget* /*widget*/, gpointer data)
@@ -321,7 +324,46 @@ extern gboolean button_press_event(GtkWidget* /*widget*/, GdkEventButton *event,
 }
 
 
-extern void ui_pull_geom(struct view_s* v)
+
+void ui_trigger_redraw(struct view_s* v)
+{
+	gtk_widget_queue_draw(v->ui->gtk_drawingarea);
+}
+
+void ui_rgbbuffer_disconnect(struct view_s* v)
+{
+	if (NULL != v->ui->source)
+		cairo_surface_destroy(v->ui->source);
+}
+
+void ui_rgbbuffer_connect(struct view_s* v, int rgbw, int rgbh, int rgbstr, unsigned char *buf)
+{
+	gtk_widget_set_size_request(v->ui->gtk_drawingarea, rgbw, rgbh);
+	v->ui->source = cairo_image_surface_create_for_data(buf, CAIRO_FORMAT_RGB24, rgbw, rgbh, rgbstr);
+}
+
+void ui_set_selected_dims(struct view_s* v, const bool* selected)
+{
+	// Avoid calling this function from itself.
+	// Toggling the GTK_TOOGLE_BUTTONs below would normally lead to another call of this function.
+	static bool in_callback = false;
+	if (in_callback)
+		return;
+
+	in_callback = true;
+
+	for (int i = 0; i < DIMS; i++) {
+
+		if (selected[i])
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[i]), TRUE);
+		else
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[i]), FALSE);
+	}
+
+	in_callback = false;
+}
+
+void ui_pull_geom(struct view_s* v)
 {
 	geom_callback(NULL, v);
 }
@@ -348,13 +390,16 @@ void ui_set_mode(struct view_s* v)
 	gtk_combo_box_set_active(v->ui->gtk_mode, v->settings.mode);
 }
 
-extern void ui_set_msg(struct view_s* v, const char* msg)
+void ui_set_msg(struct view_s* v, const char* msg)
 {
 	gtk_entry_set_text(v->ui->gtk_entry, msg);
 }
 
-extern void ui_window_new(struct view_s* v, int N, const long dims[N])
+void ui_window_new(struct view_s* v, int N, const long dims[N])
 {
+	v->ui = xmalloc(sizeof(struct view_gtk_ui_s));
+	v->ui->source = NULL;
+
 	GtkBuilder* builder = gtk_builder_new();
 	gtk_builder_add_from_string(builder, viewer_gui, -1, NULL);
 
@@ -421,6 +466,18 @@ extern void ui_window_new(struct view_s* v, int N, const long dims[N])
 	gtk_widget_show(GTK_WIDGET(window));
 }
 
+void ui_init(int* argc_p, char** argv_p[])
+{
+	gtk_disable_setlocale();
+	gtk_init(argc_p, argv_p);
+
+}
+
+void ui_main()
+{
+	gtk_main();
+}
+
 void ui_loop_quit()
 {
 	gtk_main_quit();
@@ -448,7 +505,7 @@ void ui_set_windowing(struct view_s* v, double max, double inc, int digits)
 	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_button2), v->settings.absolute_windowing ? TRUE : FALSE);
 }
 
-extern void ui_set_position(struct view_s* v, unsigned int dim, unsigned int p)
+void ui_set_position(struct view_s* v, unsigned int dim, unsigned int p)
 {
 	v->settings.pos[dim] = p;
 
