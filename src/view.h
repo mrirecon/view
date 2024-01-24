@@ -37,20 +37,20 @@ struct view_settings_s {
 	enum interp_t interpolation;
 };
 
-struct view_ui_geom_params_s {
-	int N;
+struct view_ui_params_s {
 	bool* selected;
 
 	double zoom;
 	double aniso;
 
 	bool transpose;
-
 };
+
 
 struct view_s {
 	const char* name;
 	struct view_settings_s settings;
+	struct view_ui_params_s ui_params;
 	struct view_control_s* control;
 	struct view_gtk_ui_s* ui;
 
@@ -93,8 +93,10 @@ extern void view_toggle_absolute_windowing(struct view_s* v);
 
 extern void view_window_close(struct view_s* v);
 
+extern void view_fit(struct view_s* v, int width, int height);
+
 //
-extern void view_set_geom(struct view_s* v, struct view_ui_geom_params_s gp);
+extern void view_set_geom(struct view_s* v);
 
 extern void view_refresh(struct view_s* v);
 extern void view_redraw(struct view_s* v);

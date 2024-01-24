@@ -198,29 +198,29 @@ void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom
 }
 
 
-void view_set_geom(struct view_s* v, struct view_ui_geom_params_s gp)
+void view_set_geom(struct view_s* v)
 {
 	for (int j = 0; j < DIMS; j++) {
-		if (!gp.selected[j])
+		if (!v->ui_params.selected[j])
 			continue;
 
 		if (1 == v->control->dims[j]) {
 
-			gp.selected[j] = false;
+			v->ui_params.selected[j] = false;
 		} else if ((j != v->settings.xdim) && (j != v->settings.ydim)) {
 
 			for (int i = 0; i < DIMS; i++) {
 
 				if (v->settings.xdim == (DIMS + j - i) % DIMS) {
 
-					gp.selected[v->settings.xdim] = false;
+					v->ui_params.selected[v->settings.xdim] = false;
 					v->settings.xdim = j;
 					break;
 				}
 
 				if (v->settings.ydim == (DIMS + j - i) % DIMS) {
 
-					gp.selected[v->settings.ydim] = false;
+					v->ui_params.selected[v->settings.ydim] = false;
 					v->settings.ydim = j;
 					break;
 				}
@@ -229,15 +229,15 @@ void view_set_geom(struct view_s* v, struct view_ui_geom_params_s gp)
 		}
 	}
 
-	gp.selected[v->settings.xdim] = true;
-	gp.selected[v->settings.ydim] = true;
+	v->ui_params.selected[v->settings.xdim] = true;
+	v->ui_params.selected[v->settings.ydim] = true;
 
-	ui_set_selected_dims(v, gp.selected);
+	ui_set_params(v);
 
-	v->settings.xzoom = gp.zoom * gp.aniso;
-	v->settings.yzoom = gp.zoom;
+	v->settings.xzoom = v->ui_params.zoom * v->ui_params.aniso;
+	v->settings.yzoom = v->ui_params.zoom;
 
-	if (gp.transpose) {
+	if (v->ui_params.transpose) {
 
 		if (v->settings.xdim < v->settings.ydim) {
 
@@ -484,6 +484,8 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	struct view_s* v = xmalloc(sizeof(struct view_s));
 	v->control = xmalloc(sizeof(struct view_control_s));
 	v->ui = NULL;
+	v->ui_params.selected = NULL;
+	v->settings.pos = NULL;
 
 	v->next = v->prev = v;
 	v->sync = true;
@@ -697,4 +699,17 @@ struct view_s* view_clone(struct view_s* v, const long pos[DIMS])
 const long *view_get_dims(struct view_s* v)
 {
 	return v->control->dims;
+}
+
+void view_fit(struct view_s* v, int width, int height)
+{
+	double xz = (double)(width - 5) / (double)v->control->dims[v->settings.xdim];
+	double yz = (double)(height - 5) / (double)v->control->dims[v->settings.ydim];
+
+	if (yz > xz / v->ui_params.aniso)
+		yz = xz / v->ui_params.aniso; // aniso
+
+	v->ui_params.zoom = yz;
+
+	view_set_geom(v);
 }

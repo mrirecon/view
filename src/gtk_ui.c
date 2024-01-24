@@ -66,18 +66,10 @@ extern gboolean fit_callback(GtkWidget* /*widget*/, gpointer data)
 	if (!flag)
 		return FALSE;
 
-	double aniso = gtk_adjustment_get_value(v->ui->gtk_aniso);
-
 	GtkAllocation alloc;
 	gtk_widget_get_allocation(v->ui->gtk_viewport, &alloc);
-	double xz = (double)(alloc.width - 5) / (double)view_get_dims(v)[v->settings.xdim];
-	double yz = (double)(alloc.height - 5) / (double)view_get_dims(v)[v->settings.ydim];
 
-
-	if (yz > xz / aniso)
-		yz = xz / aniso; // aniso
-
-	gtk_adjustment_set_value(v->ui->gtk_zoom, yz);
+	view_fit(v, alloc.width, alloc.height);
 
 	return FALSE;
 }
@@ -91,27 +83,20 @@ extern gboolean geom_callback(GtkWidget* /*widget*/, gpointer data)
 {
 	struct view_s* v = data;
 
-	struct view_ui_geom_params_s gp;
-
-	gp.N = DIMS;
-	gp.selected = malloc(sizeof(bool[DIMS]));
-
 	for (int j = 0; j < DIMS; j++) {
 
 		v->settings.pos[j] = gtk_adjustment_get_value(v->ui->gtk_posall[j]);
-		gp.selected[j] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[j]));
+		v->ui_params.selected[j] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[j]));
 	}
 
-	gp.zoom = gtk_adjustment_get_value(v->ui->gtk_zoom);
-	gp.aniso = gtk_adjustment_get_value(v->ui->gtk_aniso);
+	v->ui_params.zoom = gtk_adjustment_get_value(v->ui->gtk_zoom);
+	v->ui_params.aniso = gtk_adjustment_get_value(v->ui->gtk_aniso);
 
 	v->settings.flip = gtk_combo_box_get_active(v->ui->gtk_flip);
 	v->settings.interpolation = gtk_combo_box_get_active(v->ui->gtk_interp);
-	gp.transpose = gtk_toggle_tool_button_get_active(v->ui->gtk_transpose);
+	v->ui_params.transpose = gtk_toggle_tool_button_get_active(v->ui->gtk_transpose);
 
-	view_set_geom(v, gp);
-
-	free(gp.selected);
+	view_set_geom(v);
 
 	return FALSE;
 }
@@ -252,6 +237,7 @@ extern gboolean window_close(GtkWidget* /*widget*/, GdkEvent* /*event*/, gpointe
 {
 	struct view_s* v = data;
 
+	free(v->ui_params.selected);
 	view_window_close(v);
 
 	return FALSE;
@@ -342,27 +328,6 @@ void ui_rgbbuffer_connect(struct view_s* v, int rgbw, int rgbh, int rgbstr, unsi
 	v->ui->source = cairo_image_surface_create_for_data(buf, CAIRO_FORMAT_RGB24, rgbw, rgbh, rgbstr);
 }
 
-void ui_set_selected_dims(struct view_s* v, const bool* selected)
-{
-	// Avoid calling this function from itself.
-	// Toggling the GTK_TOOGLE_BUTTONs below would normally lead to another call of this function.
-	static bool in_callback = false;
-	if (in_callback)
-		return;
-
-	in_callback = true;
-
-	for (int i = 0; i < DIMS; i++) {
-
-		if (selected[i])
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[i]), TRUE);
-		else
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[i]), FALSE);
-	}
-
-	in_callback = false;
-}
-
 void ui_pull_geom(struct view_s* v)
 {
 	geom_callback(NULL, v);
@@ -398,6 +363,11 @@ void ui_set_msg(struct view_s* v, const char* msg)
 void ui_window_new(struct view_s* v, int N, const long dims[N])
 {
 	v->ui = xmalloc(sizeof(struct view_gtk_ui_s));
+	v->ui_params.selected = xmalloc(sizeof(bool[DIMS]));
+
+	for (int i = 0; i < DIMS; i++)
+		v->ui_params.selected[i] = (i == v->settings.xdim || i == v->settings.ydim) ? true : false;
+
 	v->ui->source = NULL;
 
 	GtkBuilder* builder = gtk_builder_new();
@@ -514,4 +484,29 @@ void ui_set_position(struct view_s* v, unsigned int dim, unsigned int p)
 	for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
 		if (v->sync && v2->sync)
 			gtk_adjustment_set_value(v2->ui->gtk_posall[dim], p);
+}
+
+void ui_set_params(struct view_s* v)
+{
+	// Avoid calling this function from itself.
+	// Toggling the GTK_TOOGLE_BUTTONs below would normally lead to another call of this function.
+	static bool in_callback = false;
+	if (in_callback)
+		return;
+
+	in_callback = true;
+
+	double zoom = gtk_adjustment_get_value(v->ui->gtk_zoom);
+	if (zoom != v->ui_params.zoom)
+		gtk_adjustment_set_value(v->ui->gtk_zoom, v->ui_params.zoom);
+
+	for (int j = 0; j < DIMS; j++) {
+
+		bool selected = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[j]));
+
+		if (selected != v->ui_params.selected[j])
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[j]), v->ui_params.selected[j] ? TRUE : FALSE);
+	}
+
+	in_callback = false;
 }
