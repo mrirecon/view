@@ -41,27 +41,21 @@ struct view_ui_params_s {
 	bool* selected;
 
 	double zoom;
-	double aniso;
-
-	bool transpose;
 
 	int windowing_digits;
 	double windowing_max;
 	double windowing_inc;
-
 };
 
 
 struct view_s {
 	const char* name;
-	struct view_settings_s settings;
-	struct view_ui_params_s ui_params;
+
 	struct view_control_s* control;
 	struct view_gtk_ui_s* ui;
 
-	// change-management
-	bool invalid;
-	bool rgb_invalid;
+	struct view_settings_s settings;
+	struct view_ui_params_s ui_params;
 
 	// multi-window
 	struct view_s* next;
@@ -79,9 +73,9 @@ extern void window_connect_sync(struct view_s* a, struct view_s* b);
 
 // usually callbacks:
 extern void view_fit(struct view_s* v, int width, int height);
-extern void view_geom(struct view_s* v);
+extern void view_geom(struct view_s* v, const bool* selected, const long* pos, double zoom, double aniso, _Bool transpose, enum flip_t flip, enum interp_t interp);
 extern void view_refresh(struct view_s* v);
-extern void view_window(struct view_s* v);
+extern void view_window(struct view_s* v, enum mode_t mode, double winlow, double winhigh);
 
 extern void view_draw(struct view_s* v);
 
@@ -93,17 +87,19 @@ extern void view_motion(struct view_s* v, int x, int y, double inc_low, double i
 extern void view_click(struct view_s* v, int x, int y, int button);
 
 extern void view_toggle_plot(struct view_s* v);
-extern void view_toggle_absolute_windowing(struct view_s* v);
+extern void view_toggle_absolute_windowing(struct view_s* v, _Bool state);
 
 extern void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom)[3][3]);
 
-extern struct view_s* view_window_clone(struct view_s* v, const long pos[DIMS]);
+extern struct view_s* view_window_clone(struct view_s* v);
 
 extern void view_window_close(struct view_s* v);
 
 
 //
 
+extern _Bool view_acquire(struct view_s* v, _Bool wait);
+extern void view_release(struct view_s* v);
 
 
 

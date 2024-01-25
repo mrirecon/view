@@ -22,11 +22,17 @@
 
 #include "view.h"
 
+#include <stdatomic.h>
+#include <threads.h>
+
 #ifndef DIMS
 #define DIMS 16
 #endif
 
 struct view_control_s {
+	// change-management
+	bool invalid;
+	bool rgb_invalid;
 
 	//data
 	long dims[DIMS];
@@ -53,9 +59,16 @@ struct view_control_s {
 
 	//misc
 	bool status_bar;
-	bool transpose;
 	double max;
+
+	mtx_t mx;
+
+	bool transpose;
+	double aniso;
 };
+
+static void _view_window(struct view_s* v, enum mode_t mode, double winlow, double winhigh);
+static void _view_geom(struct view_s* v);
 
 #if 0
 static void add_text(cairo_surface_t* surface, int x, int y, int size, const char* text)
@@ -86,6 +99,22 @@ static void add_text(cairo_surface_t* surface, int x, int y, int size, const cha
 }
 #endif
 
+bool view_acquire(struct view_s* v, bool wait)
+{
+	if (wait)
+		mtx_lock(&v->control->mx);
+	else if (0 != mtx_trylock(&v->control->mx))
+			return false;
+
+	return true;
+}
+
+void view_release(struct view_s* v)
+{
+	mtx_unlock(&v->control->mx);
+}
+
+
 void update_geom(struct view_s* v)
 {
 	if (NULL == v->control->geom)
@@ -107,15 +136,19 @@ void update_geom(struct view_s* v)
 
 void view_sync(struct view_s* v)
 {
-
 	for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
 
 		if (v->sync && v2->sync) {
 
-			v2->settings.mode = v->settings.mode;
-			v2->settings.winlow = v->settings.winlow;
-			v2->settings.winhigh= v->settings.winhigh;
-			ui_set_params(v2);
+			view_acquire(v2, true);
+
+			v2->settings.pos[v->settings.xdim] = v->settings.pos[v->settings.xdim];
+			v2->settings.pos[v->settings.ydim] = v->settings.pos[v->settings.ydim];
+			_view_window(v2, v->settings.mode, v->settings.winlow, v->settings.winhigh);
+
+			ui_set_params(v2, v2->ui_params, v2->settings);
+
+			view_release(v2);
 		}
 	}
 }
@@ -155,10 +188,6 @@ void view_refresh(struct view_s* v)
 
 		if (v->control->max < max)
 			v->control->max = max;
-
-		v->ui_params.windowing_max = v->control->max;
-		ui_set_params(v);
-
 	} else {
 
 		long size = md_calc_size(DIMS, v->control->dims);
@@ -176,6 +205,9 @@ void view_refresh(struct view_s* v)
 		v->control->max = max;
 	}
 
+	v->ui_params.windowing_max = v->control->max;
+
+	ui_set_params(v, v->ui_params, v->settings);
 	ui_trigger_redraw(v);
 }
 
@@ -190,9 +222,28 @@ void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom
 }
 
 
-void view_geom(struct view_s* v)
+void view_geom(struct view_s* v, const bool* selected, const long* pos, double zoom, double aniso, _Bool transpose, enum flip_t flip, enum interp_t interp)
 {
 	for (int j = 0; j < DIMS; j++) {
+
+		v->ui_params.selected[j] = selected[j];
+		v->settings.pos[j] = pos[j];
+	}
+
+	v->ui_params.zoom = zoom;
+	v->control->aniso = aniso;
+	v->control->transpose = transpose;
+
+	v->settings.flip = flip;
+	v->settings.interpolation = interp;
+
+	_view_geom(v);
+}
+
+static void _view_geom(struct view_s* v)
+{
+	for (int j = 0; j < DIMS; j++) {
+
 		if (!v->ui_params.selected[j])
 			continue;
 
@@ -224,12 +275,10 @@ void view_geom(struct view_s* v)
 	v->ui_params.selected[v->settings.xdim] = true;
 	v->ui_params.selected[v->settings.ydim] = true;
 
-	ui_set_params(v);
-
-	v->settings.xzoom = v->ui_params.zoom * v->ui_params.aniso;
+	v->settings.xzoom = v->ui_params.zoom * v->control->aniso;
 	v->settings.yzoom = v->ui_params.zoom;
 
-	if (v->ui_params.transpose) {
+	if (v->control->transpose) {
 
 		if (v->settings.xdim < v->settings.ydim) {
 
@@ -250,18 +299,28 @@ void view_geom(struct view_s* v)
 	v->control->lastx = -1;
 	v->control->lasty = -1;
 
-	v->invalid = true;
+	v->control->invalid = true;
 
 	update_geom(v);
+
+	ui_set_params(v, v->ui_params, v->settings);
 	ui_trigger_redraw(v);
 }
 
-void view_window(struct view_s* v)
+static void _view_window(struct view_s* v, enum mode_t mode, double winlow, double winhigh)
 {
-	view_sync(v);
-	v->rgb_invalid = true;
-
+	v->settings.mode = mode;
+	v->settings.winlow = winlow;
+	v->settings.winhigh = winhigh;
+	v->control->rgb_invalid = true;
 	ui_trigger_redraw(v);
+}
+
+
+void view_window(struct view_s* v, enum mode_t mode, double winlow, double winhigh)
+{
+	_view_window(v, mode, winlow, winhigh);
+	view_sync(v);
 }
 
 static void update_buf_view(struct view_s* v)
@@ -399,17 +458,17 @@ void view_draw(struct view_s* v)
 	v->control->rgbh = v->control->dims[v->settings.ydim] * v->settings.yzoom;
 	v->control->rgbstr = 4 * v->control->rgbw;
 
-	if (v->invalid) {
+	if (v->control->invalid) {
 
 		v->control->buf = realloc(v->control->buf, v->control->rgbh * v->control->rgbw * sizeof(complex float));
 
 		update_buf_view(v);
 
-		v->invalid = false;
-		v->rgb_invalid = true;
+		v->control->invalid = false;
+		v->control->rgb_invalid = true;
 	}
 
-	if (v->rgb_invalid) {
+	if (v->control->rgb_invalid) {
 
 		ui_rgbbuffer_disconnect(v);
 		v->control->rgb = realloc(v->control->rgb, v->control->rgbh * v->control->rgbstr);
@@ -420,7 +479,7 @@ void view_draw(struct view_s* v)
 			v->settings.mode, v->settings.absolute_windowing ? 1. : 1. / v->control->max, v->settings.winlow, v->settings.winhigh, v->settings.phrot,
 			v->control->rgbw, v->control->buf);
 
-		v->rgb_invalid = false;
+		v->control->rgb_invalid = false;
 	}
 
 
@@ -475,54 +534,60 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 
 	struct view_s* v = xmalloc(sizeof(struct view_s));
 	v->control = xmalloc(sizeof(struct view_control_s));
-	v->ui = NULL;
-	v->ui_params.selected = NULL;
-	v->ui_params.windowing_max = v->control->max;
-	v->settings.pos = NULL;
-	v->settings.mode = 0;
+	v->ui_params.selected = xmalloc(sizeof(bool[DIMS]));
+	v->settings.pos = xmalloc(DIMS * sizeof(long));
 
 	v->next = v->prev = v;
 	v->sync = true;
-
-	v->settings.cross_hair = false;
-	v->control->status_bar = false;
-
 	v->name = name;
-	v->control->max = 0.;
+	v->ui = NULL;
 
-	v->settings.pos = xmalloc(DIMS * sizeof(long));
-
-	for (int i = 0; i < DIMS; i++)
-		v->settings.pos[i] = (NULL != pos) ? pos[i] : 0;
-
-	v->settings.xdim = sq_dims[0];
-	v->settings.ydim = sq_dims[1];
-
+	v->settings.mode = MAGN;
+	v->settings.interpolation = NLINEAR;
+	v->settings.flip = OO;
+	v->settings.cross_hair = false;
 	v->settings.plot = false;
-
 	v->settings.xzoom = 2.;
 	v->settings.yzoom = 2.;
-
-	v->control->rgb = NULL;
-	v->control->buf = NULL;
-
-
-	md_copy_dims(DIMS, v->control->dims, dims);
-	md_calc_strides(DIMS, v->control->strs, dims, sizeof(complex float));
-	v->control->data = data;
-
-	v->control->geom_flags = 0ul;
-	v->control->geom = NULL;
-	v->control->geom_current = NULL;
+	v->settings.xdim = sq_dims[0];
+	v->settings.ydim = sq_dims[1];
 
 	v->settings.winlow = 0.;
 	v->settings.winhigh = 1.;
 	v->settings.phrot = 0.;
 
+	for (int i = 0; i < DIMS; i++) {
+
+		v->settings.pos[i] = (NULL == pos) ? 0 : pos[i];
+		v->ui_params.selected[i] = false;
+	}
+
+	v->ui_params.selected[v->settings.xdim] = true;
+	v->ui_params.selected[v->settings.ydim] = true;
+	v->ui_params.zoom = 2;
+
+	md_copy_dims(DIMS, v->control->dims, dims);
+	md_calc_strides(DIMS, v->control->strs, dims, sizeof(complex float));
+
+	v->control->data = data;
+	v->control->rgb = NULL;
+	v->control->buf = NULL;
+	v->control->status_bar = false;
+	v->control->max = 0.;
+
+	v->control->geom_flags = 0ul;
+	v->control->geom = NULL;
+	v->control->geom_current = NULL;
+
 	v->control->lastx = -1;
 	v->control->lasty = -1;
 
-	v->invalid = true;
+	v->control->aniso = 1;
+	v->control->transpose = true;
+
+	v->control->invalid = true;
+
+	mtx_init(&v->control->mx, mtx_plain);
 
 	return v;
 }
@@ -535,6 +600,10 @@ static void delete_view(struct view_s* v)
 
 	free(v->control->buf);
 	free(v->control->rgb);
+
+	free(v->ui_params.selected);
+
+	mtx_destroy(&v->control->mx);
 
 #if 0
 	free(v->settings.pos);
@@ -549,12 +618,13 @@ static void view_set_windowing(struct view_s* v)
 	v->ui_params.windowing_max = max;
 	v->ui_params.windowing_inc = exp(log(10) * round(log(max) / log(10.))) * 0.001;
 	v->ui_params.windowing_digits =  MAX(3, 3 - (int)round(log(max) / log(10.)));
-
-	ui_set_params(v);
 }
 
-void view_toggle_absolute_windowing(struct view_s* v)
+void view_toggle_absolute_windowing(struct view_s* v, bool state)
 {
+	if (state && v->settings.absolute_windowing)
+		return;
+
 	if (v->settings.absolute_windowing) {
 
 		long size = md_calc_size(DIMS, v->control->dims);
@@ -582,16 +652,16 @@ void view_toggle_absolute_windowing(struct view_s* v)
 	}
 
 	view_set_windowing(v);
+
+	ui_set_params(v, v->ui_params, v->settings);
 }
 
 static void view_set_position(struct view_s* v, float pos[DIMS])
 {
 	v->settings.pos[v->settings.xdim] = pos[v->settings.xdim];
 	v->settings.pos[v->settings.ydim] = pos[v->settings.ydim];
-	for (int i = 0; i < DIMS; i++)
-		printf("%ld ", v->settings.pos[i]);
-	printf("\n");
-	ui_set_params(v);
+
+	ui_set_params(v, v->ui_params, v->settings);
 	view_sync(v);
 }
 
@@ -607,22 +677,23 @@ void view_click(struct view_s* v, int x, int y, int button)
 		v->settings.cross_hair = false;
 		v->control->status_bar = false;
 		clear_status_bar(v);
-
-		v->rgb_invalid = true;
-		ui_trigger_redraw(v);
 	}
 
 	if (2 == button) {
 
 		v->settings.cross_hair = true;
 		v->control->status_bar = true;
-
 		view_set_position(v, pos);
 	}
+
+	v->control->rgb_invalid = true;
+	ui_trigger_redraw(v);
 }
 
 void view_motion(struct view_s* v, int x, int y, double inc_low, double inc_high, int button)
 {
+	bool changed = false;
+
 	if (0 == button) {
 
 		v->control->lastx = -1;
@@ -642,15 +713,21 @@ void view_motion(struct view_s* v, int x, int y, double inc_low, double inc_high
 
 			if (high > low) {
 
-				v->settings.winlow = low;
-				v->settings.winhigh = high;
-				ui_set_params(v);
-				view_sync(v);
+				v->settings.winlow = MAX(0, low);
+				v->settings.winhigh = MIN(v->ui_params.windowing_max, high);
+
+				changed = true;
 			}
 		}
 
 		v->control->lastx = x;
 		v->control->lasty = y;
+	}
+
+	if (changed) {
+
+		ui_set_params(v, v->ui_params, v->settings);
+		view_window(v, v->settings.mode, v->settings.winlow, v->settings.winhigh);
 	}
 }
 
@@ -670,16 +747,23 @@ void view_window_close(struct view_s* v)
 struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x, bool absolute_windowing)
 {
 	struct view_s* v = create_view(name, pos, dims, x);
+
+	view_acquire(v, true);
+
 	v->settings.absolute_windowing = absolute_windowing;
 
-	ui_window_new(v, DIMS, dims);
+	ui_window_new(v, DIMS, dims, v->settings);
 	nr_windows++;
 
 //	fit_callback(NULL, v);
 	view_refresh(v);
-	ui_pull_geom(v);
-	ui_pull_window(v);
+	_view_geom(v);
 	view_set_windowing(v);
+	view_window(v, v->settings.mode, v->settings.winlow, v->settings.winhigh);
+
+	ui_set_params(v, v->ui_params, v->settings);
+
+	view_release(v);
 
 	return v;
 }
@@ -693,12 +777,12 @@ void window_connect_sync(struct view_s* v, struct view_s* v2)
 	v->next = v2;
 
 	// set windowing
-	view_window(v);
+	view_window(v, v->settings.mode, v->settings.winlow, v->settings.winhigh);
 }
 
-struct view_s* view_window_clone(struct view_s* v, const long pos[DIMS])
+struct view_s* view_window_clone(struct view_s* v)
 {
-	struct view_s* v2 = window_new(v->name, pos, v->control->dims, v->control->data, v->settings.absolute_windowing);
+	struct view_s* v2 = window_new(v->name, v->settings.pos, v->control->dims, v->control->data, v->settings.absolute_windowing);
 
 	window_connect_sync(v, v2);
 
@@ -710,19 +794,19 @@ void view_fit(struct view_s* v, int width, int height)
 	double xz = (double)(width - 5) / (double)v->control->dims[v->settings.xdim];
 	double yz = (double)(height - 5) / (double)v->control->dims[v->settings.ydim];
 
-	if (yz > xz / v->ui_params.aniso)
-		yz = xz / v->ui_params.aniso; // aniso
+	if (yz > xz / v->control->aniso)
+		yz = xz / v->control->aniso; // aniso
 
 	v->ui_params.zoom = yz;
 
-	view_geom(v);
+	_view_geom(v);
 }
 
 void view_toggle_plot(struct view_s* v)
 {
 	v->settings.plot = !v->settings.plot;
 
-	v->invalid = true;
-	ui_set_params(v);
+	v->control->invalid = true;
+	ui_set_params(v, v->ui_params, v->settings);
 	ui_trigger_redraw(v);
 }
