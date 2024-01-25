@@ -198,7 +198,7 @@ void view_add_geometry(struct view_s* v, unsigned long flags, const float (*geom
 }
 
 
-void view_set_geom(struct view_s* v)
+void view_geom(struct view_s* v)
 {
 	for (int j = 0; j < DIMS; j++) {
 		if (!v->ui_params.selected[j])
@@ -264,7 +264,7 @@ void view_set_geom(struct view_s* v)
 	ui_trigger_redraw(v);
 }
 
-void view_touch_rgb_settings(struct view_s* v)
+void view_window(struct view_s* v)
 {
 	view_sync_windowing(v);
 	v->rgb_invalid = true;
@@ -401,7 +401,7 @@ static void update_status_bar(struct view_s* v, const float (*pos)[DIMS])
 }
 
 
-void view_redraw(struct view_s* v)
+void view_draw(struct view_s* v)
 {
 	v->control->rgbw = v->control->dims[v->settings.xdim] * v->settings.xzoom;
 	v->control->rgbh = v->control->dims[v->settings.ydim] * v->settings.yzoom;
@@ -615,36 +615,38 @@ void view_click(struct view_s* v, int x, int y, int button)
 	}
 }
 
-void view_windowing_move(struct view_s* v, int x, int y, double inc_low, double inc_high)
+void view_motion(struct view_s* v, int x, int y, double inc_low, double inc_high, int button)
 {
-	if (-1 != v->control->lastx) {
+	if (0 == button) {
 
-		double low = v->settings.winlow;
-		double high = v->settings.winhigh;
-
-		low -= (x - v->control->lastx) * inc_low * 5;
-		high -= (y - v->control->lasty) * inc_high * 5;
-
-		if (high > low) {
-
-			v->settings.winlow = low;
-			v->settings.winhigh = high;
-			ui_set_values(v);
-			view_sync_windowing(v);
-		}
+		v->control->lastx = -1;
+		v->control->lasty = -1;
+		return;
 	}
 
-	v->control->lastx = x;
-	v->control->lasty = y;
+	if (1 == button) {
+
+		if (-1 != v->control->lastx) {
+
+			double low = v->settings.winlow;
+			double high = v->settings.winhigh;
+
+			low -= (x - v->control->lastx) * inc_low * 5;
+			high -= (y - v->control->lasty) * inc_high * 5;
+
+			if (high > low) {
+
+				v->settings.winlow = low;
+				v->settings.winhigh = high;
+				ui_set_values(v);
+				view_sync_windowing(v);
+			}
+		}
+
+		v->control->lastx = x;
+		v->control->lasty = y;
+	}
 }
-
-void view_windowing_release(struct view_s* v)
-{
-	v->control->lastx = -1;
-	v->control->lasty = -1;
-}
-
-
 
 static int nr_windows = 0;
 
@@ -684,21 +686,17 @@ void window_connect_sync(struct view_s* v, struct view_s* v2)
 	v2->prev = v;
 	v->next = v2;
 
-	view_touch_rgb_settings(v);
+	// set windowing
+	view_window(v);
 }
 
-struct view_s* view_clone(struct view_s* v, const long pos[DIMS])
+struct view_s* view_window_clone(struct view_s* v, const long pos[DIMS])
 {
 	struct view_s* v2 = window_new(v->name, pos, v->control->dims, v->control->data, v->settings.absolute_windowing);
 
 	window_connect_sync(v, v2);
 
 	return v2;
-}
-
-const long *view_get_dims(struct view_s* v)
-{
-	return v->control->dims;
 }
 
 void view_fit(struct view_s* v, int width, int height)
@@ -711,5 +709,12 @@ void view_fit(struct view_s* v, int width, int height)
 
 	v->ui_params.zoom = yz;
 
-	view_set_geom(v);
+	view_geom(v);
+}
+
+void view_toggle_plot(struct view_s* v)
+{
+	v->invalid = true;
+	ui_set_params(v);
+	ui_trigger_redraw(v);
 }

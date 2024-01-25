@@ -96,7 +96,7 @@ extern gboolean geom_callback(GtkWidget* /*widget*/, gpointer data)
 	v->settings.interpolation = gtk_combo_box_get_active(v->ui->gtk_interp);
 	v->ui_params.transpose = gtk_toggle_tool_button_get_active(v->ui->gtk_transpose);
 
-	view_set_geom(v);
+	view_geom(v);
 
 	return FALSE;
 }
@@ -115,7 +115,7 @@ extern gboolean window_callback(GtkWidget* /*widget*/, gpointer data)
 	v->settings.winlow = gtk_adjustment_get_value(v->ui->gtk_winlow);
 	v->settings.winhigh = gtk_adjustment_get_value(v->ui->gtk_winhigh);
 
-	view_touch_rgb_settings(v);
+	view_window(v);
 
 	return FALSE;
 }
@@ -210,22 +210,18 @@ extern gboolean save_movie_callback(GtkWidget* /*widget*/, gpointer data)
 	return FALSE;
 }
 
-extern gboolean motion_notify_event(GtkWidget* /*widget*/, GdkEventMotion *event, gpointer data)
+extern gboolean motion_callback(GtkWidget* /*widget*/, GdkEventMotion *event, gpointer data)
 {
 	struct view_s* v = data;
 
 	double inc_low = gtk_adjustment_get_step_increment(v->ui->gtk_winlow);
 	double inc_high = gtk_adjustment_get_step_increment(v->ui->gtk_winhigh);
 
-	if (event->state & GDK_BUTTON1_MASK)
-		view_windowing_move(v, event->x, event->y, inc_low, inc_high);
-	else
-		view_windowing_release(v);
-
+	view_motion(v, event->x, event->y, inc_low, inc_high, (event->state & GDK_BUTTON1_MASK) ? 1 : 0);
 	return FALSE;
 }
 
-extern gboolean show_hide(GtkWidget *widget, GtkCheckButton* button)
+extern gboolean show_hide_callback(GtkWidget *widget, GtkCheckButton* button)
 {
 	gboolean flag = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(button));
 	(flag ? gtk_widget_show : gtk_widget_hide)(widget);
@@ -233,7 +229,7 @@ extern gboolean show_hide(GtkWidget *widget, GtkCheckButton* button)
 	return FALSE;
 }
 
-extern gboolean window_close(GtkWidget* /*widget*/, GdkEvent* /*event*/, gpointer data)
+extern gboolean window_close_callback(GtkWidget* /*widget*/, GdkEvent* /*event*/, gpointer data)
 {
 	struct view_s* v = data;
 
@@ -243,11 +239,11 @@ extern gboolean window_close(GtkWidget* /*widget*/, GdkEvent* /*event*/, gpointe
 	return FALSE;
 }
 
-extern gboolean window_clone(GtkWidget* /*widget*/, gpointer data)
+extern gboolean window_clone_callback(GtkWidget* /*widget*/, gpointer data)
 {
 	struct view_s* v = data;
 
-	view_clone(v, v->settings.pos);
+	view_window_clone(v, v->settings.pos);
 
 	return FALSE;
 }
@@ -255,14 +251,14 @@ extern gboolean window_clone(GtkWidget* /*widget*/, gpointer data)
 extern gboolean draw_callback(GtkWidget* /*widget*/, cairo_t *cr, gpointer data)
 {
 	struct view_s* v = data;
-	view_redraw(v);
+	view_draw(v);
 
 	cairo_set_source_surface(cr, v->ui->source, 0, 0);
 	cairo_paint(cr);
 	return FALSE;
 }
 
-extern gboolean toggle_sync(GtkToggleButton* /*button*/, gpointer data)
+extern gboolean toggle_sync_callback(GtkToggleButton* /*button*/, gpointer data)
 {
 	struct view_s* v = data;
 	v->sync = gtk_toggle_tool_button_get_active(v->ui->gtk_sync);
@@ -270,21 +266,17 @@ extern gboolean toggle_sync(GtkToggleButton* /*button*/, gpointer data)
 	return FALSE;
 }
 
-extern gboolean toggle_plot(GtkToggleButton* /*button*/, gpointer data)
+extern gboolean toggle_plot_callback(GtkToggleButton* /*button*/, gpointer data)
 {
 	struct view_s* v = data;
 	v->settings.plot = !v->settings.plot;
 
-	gtk_widget_set_sensitive(GTK_WIDGET(v->ui->gtk_mode),
-		v->settings.plot ? FALSE : TRUE);
-
-	v->invalid = true;
-	ui_trigger_redraw(v);
+	view_toggle_plot(v);
 
 	return FALSE;
 }
 
-extern gboolean toogle_absolute_windowing(GtkToggleToolButton* button, gpointer data)
+extern gboolean toogle_absolute_windowing_callback(GtkToggleToolButton* button, gpointer data)
 {
 	struct view_s* v = data;
 
@@ -296,7 +288,7 @@ extern gboolean toogle_absolute_windowing(GtkToggleToolButton* button, gpointer 
 	return FALSE;
 }
 
-extern gboolean button_press_event(GtkWidget* /*widget*/, GdkEventButton *event, gpointer data)
+extern gboolean click_callback(GtkWidget* /*widget*/, GdkEventButton *event, gpointer data)
 {
 	struct view_s* v = data;
 
@@ -509,4 +501,7 @@ void ui_set_params(struct view_s* v)
 	}
 
 	in_callback = false;
+
+	gtk_widget_set_sensitive(GTK_WIDGET(v->ui->gtk_mode),
+		v->settings.plot ? FALSE : TRUE);
 }
