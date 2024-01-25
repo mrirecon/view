@@ -7,17 +7,9 @@ struct view_s;
 extern void ui_rgbbuffer_disconnect(struct view_s* v);
 extern void ui_rgbbuffer_connect(struct view_s* v, int rgbw, int rgbh, int rgbstr, unsigned char* buf);
 
-extern void ui_set_position(struct view_s* v, unsigned int dim, unsigned int p);
-
-extern void ui_set_limits(struct view_s* v);
-extern void ui_set_values(struct view_s* v);
-extern void ui_set_windowing(struct view_s* v, double max, double inc, int digits);
-
-extern void ui_set_mode(struct view_s* v);
+void ui_set_params(struct view_s* v);
 
 extern void ui_set_msg(struct view_s* v, const char* msg);
-
-void ui_set_params(struct view_s* v);
 
 extern void ui_window_new(struct view_s* v, int N, const long dims[N]);
 

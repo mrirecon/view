@@ -105,7 +105,7 @@ void update_geom(struct view_s* v)
 		(*v->control->geom_current)[2][0], (*v->control->geom_current)[2][1], (*v->control->geom_current)[2][2]);
 }
 
-void view_sync_windowing(struct view_s* v)
+void view_sync(struct view_s* v)
 {
 
 	for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next) {
@@ -115,8 +115,7 @@ void view_sync_windowing(struct view_s* v)
 			v2->settings.mode = v->settings.mode;
 			v2->settings.winlow = v->settings.winlow;
 			v2->settings.winhigh= v->settings.winhigh;
-			ui_set_values(v2);
-			ui_set_mode(v2);
+			ui_set_params(v2);
 		}
 	}
 }
@@ -150,23 +149,16 @@ void view_refresh(struct view_s* v)
 
 		if (0 == v->control->max) {
 
-			v->win_high_max = max;
-			v->win_low_max = max;
 			v->settings.winhigh = max;
 			v->control->max = max;
-
-			ui_set_limits(v);
-			ui_set_values(v);
 		}
 
-		if (v->control->max < max) {
-
-			v->win_high_max = max;
-			v->win_low_max = max;
+		if (v->control->max < max)
 			v->control->max = max;
 
-			ui_set_limits(v);
-		}
+		v->ui_params.windowing_max = v->control->max;
+		ui_set_params(v);
+
 	} else {
 
 		long size = md_calc_size(DIMS, v->control->dims);
@@ -266,7 +258,7 @@ void view_geom(struct view_s* v)
 
 void view_window(struct view_s* v)
 {
-	view_sync_windowing(v);
+	view_sync(v);
 	v->rgb_invalid = true;
 
 	ui_trigger_redraw(v);
@@ -485,7 +477,9 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 	v->control = xmalloc(sizeof(struct view_control_s));
 	v->ui = NULL;
 	v->ui_params.selected = NULL;
+	v->ui_params.windowing_max = v->control->max;
 	v->settings.pos = NULL;
+	v->settings.mode = 0;
 
 	v->next = v->prev = v;
 	v->sync = true;
@@ -552,9 +546,11 @@ static void view_set_windowing(struct view_s* v)
 {
 	double max = v->settings.absolute_windowing ? v->control->max : 1;
 	max = MIN(1.e10, max);
-	double inc = exp(log(10) * round(log(max) / log(10.))) * 0.001;
-	int digits =  MAX(3, 3 - (int)round(log(max) / log(10.)));
-	ui_set_windowing(v, max, inc, digits);
+	v->ui_params.windowing_max = max;
+	v->ui_params.windowing_inc = exp(log(10) * round(log(max) / log(10.))) * 0.001;
+	v->ui_params.windowing_digits =  MAX(3, 3 - (int)round(log(max) / log(10.)));
+
+	ui_set_params(v);
 }
 
 void view_toggle_absolute_windowing(struct view_s* v)
@@ -588,6 +584,17 @@ void view_toggle_absolute_windowing(struct view_s* v)
 	view_set_windowing(v);
 }
 
+static void view_set_position(struct view_s* v, float pos[DIMS])
+{
+	v->settings.pos[v->settings.xdim] = pos[v->settings.xdim];
+	v->settings.pos[v->settings.ydim] = pos[v->settings.ydim];
+	for (int i = 0; i < DIMS; i++)
+		printf("%ld ", v->settings.pos[i]);
+	printf("\n");
+	ui_set_params(v);
+	view_sync(v);
+}
+
 void view_click(struct view_s* v, int x, int y, int button)
 {
 	struct xy_s xy = { x, y };
@@ -610,8 +617,7 @@ void view_click(struct view_s* v, int x, int y, int button)
 		v->settings.cross_hair = true;
 		v->control->status_bar = true;
 
-		ui_set_position(v, v->settings.xdim, pos[v->settings.xdim]);
-		ui_set_position(v, v->settings.ydim, pos[v->settings.ydim]);
+		view_set_position(v, pos);
 	}
 }
 
@@ -638,8 +644,8 @@ void view_motion(struct view_s* v, int x, int y, double inc_low, double inc_high
 
 				v->settings.winlow = low;
 				v->settings.winhigh = high;
-				ui_set_values(v);
-				view_sync_windowing(v);
+				ui_set_params(v);
+				view_sync(v);
 			}
 		}
 
@@ -714,6 +720,8 @@ void view_fit(struct view_s* v, int width, int height)
 
 void view_toggle_plot(struct view_s* v)
 {
+	v->settings.plot = !v->settings.plot;
+
 	v->invalid = true;
 	ui_set_params(v);
 	ui_trigger_redraw(v);

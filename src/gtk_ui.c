@@ -10,6 +10,8 @@
 #include <libgen.h>
 #include <string.h>
 
+#include <stdatomic.h>
+
 #include "gtk_ui.h"
 #include "view.h"
 
@@ -54,6 +56,8 @@ struct view_gtk_ui_s {
 	GtkWidget *dialog; // Save dialog
 	GtkFileChooser *chooser; // Save dialog
 	GtkWindow *window;
+
+	atomic_flag in_callback;
 };
 
 
@@ -221,6 +225,19 @@ extern gboolean motion_callback(GtkWidget* /*widget*/, GdkEventMotion *event, gp
 	return FALSE;
 }
 
+extern gboolean click_callback(GtkWidget* /*widget*/, GdkEventButton *event, gpointer data)
+{
+	struct view_s* v = data;
+
+	if (event->button == GDK_BUTTON_PRIMARY)
+		view_click(v, event->x, event->y, 1);
+
+	if (event->button == GDK_BUTTON_SECONDARY)
+		view_click(v, event->x, event->y, 2);
+
+	return FALSE;
+}
+
 extern gboolean show_hide_callback(GtkWidget *widget, GtkCheckButton* button)
 {
 	gboolean flag = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(button));
@@ -269,8 +286,6 @@ extern gboolean toggle_sync_callback(GtkToggleButton* /*button*/, gpointer data)
 extern gboolean toggle_plot_callback(GtkToggleButton* /*button*/, gpointer data)
 {
 	struct view_s* v = data;
-	v->settings.plot = !v->settings.plot;
-
 	view_toggle_plot(v);
 
 	return FALSE;
@@ -284,19 +299,6 @@ extern gboolean toogle_absolute_windowing_callback(GtkToggleToolButton* button, 
 		return FALSE;
 
 	view_toggle_absolute_windowing(v);
-
-	return FALSE;
-}
-
-extern gboolean click_callback(GtkWidget* /*widget*/, GdkEventButton *event, gpointer data)
-{
-	struct view_s* v = data;
-
-	if (event->button == GDK_BUTTON_PRIMARY)
-		view_click(v, event->x, event->y, 1);
-
-	if (event->button == GDK_BUTTON_SECONDARY)
-		view_click(v, event->x, event->y, 2);
 
 	return FALSE;
 }
@@ -330,23 +332,6 @@ void ui_pull_window(struct view_s* v)
 	window_callback(NULL, v);
 }
 
-void ui_set_limits(struct view_s* v)
-{
-	gtk_adjustment_set_upper(v->ui->gtk_winhigh, v->win_high_max);
-	gtk_adjustment_set_upper(v->ui->gtk_winlow, v->win_low_max);
-}
-
-void ui_set_values(struct view_s* v)
-{
-	gtk_adjustment_set_value(v->ui->gtk_winlow, v->settings.winlow);
-	gtk_adjustment_set_value(v->ui->gtk_winhigh, v->settings.winhigh);
-}
-
-void ui_set_mode(struct view_s* v)
-{
-	gtk_combo_box_set_active(v->ui->gtk_mode, v->settings.mode);
-}
-
 void ui_set_msg(struct view_s* v, const char* msg)
 {
 	gtk_entry_set_text(v->ui->gtk_entry, msg);
@@ -359,6 +344,8 @@ void ui_window_new(struct view_s* v, int N, const long dims[N])
 
 	for (int i = 0; i < DIMS; i++)
 		v->ui_params.selected[i] = (i == v->settings.xdim || i == v->settings.ydim) ? true : false;
+
+	atomic_flag_clear(&v->ui->in_callback);
 
 	v->ui->source = NULL;
 
@@ -454,43 +441,12 @@ bool gtk_ui_save_png(struct view_s* v, const char* filename)
 		return false;
 }
 
-void ui_set_windowing(struct view_s* v, double max, double inc, int digits)
-{
-	gtk_adjustment_configure(v->ui->gtk_winhigh, v->settings.winhigh, 0, max, inc, gtk_adjustment_get_page_increment(v->ui->gtk_winhigh), gtk_adjustment_get_page_size(v->ui->gtk_winhigh));
-	gtk_adjustment_configure(v->ui->gtk_winlow, v->settings.winlow, 0, max, inc, gtk_adjustment_get_page_increment(v->ui->gtk_winlow), gtk_adjustment_get_page_size(v->ui->gtk_winlow));
-	gtk_spin_button_set_digits(v->ui->gtk_button_winhigh, digits);
-	gtk_spin_button_set_digits(v->ui->gtk_button_winlow, digits);
-
-	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_scale1), v->settings.absolute_windowing ? FALSE : TRUE);
-	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_scale2), v->settings.absolute_windowing ? FALSE : TRUE);
-	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_button1), v->settings.absolute_windowing ? TRUE : FALSE);
-	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_button2), v->settings.absolute_windowing ? TRUE : FALSE);
-}
-
-void ui_set_position(struct view_s* v, unsigned int dim, unsigned int p)
-{
-	v->settings.pos[dim] = p;
-
-	gtk_adjustment_set_value(v->ui->gtk_posall[dim], p);
-
-	for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
-		if (v->sync && v2->sync)
-			gtk_adjustment_set_value(v2->ui->gtk_posall[dim], p);
-}
-
 void ui_set_params(struct view_s* v)
 {
-	// Avoid calling this function from itself.
-	// Toggling the GTK_TOOGLE_BUTTONs below would normally lead to another call of this function.
-	static bool in_callback = false;
-	if (in_callback)
+	if (!atomic_flag_test_and_set(&v->ui->in_callback))
 		return;
 
-	in_callback = true;
-
-	double zoom = gtk_adjustment_get_value(v->ui->gtk_zoom);
-	if (zoom != v->ui_params.zoom)
-		gtk_adjustment_set_value(v->ui->gtk_zoom, v->ui_params.zoom);
+	gtk_adjustment_set_value(v->ui->gtk_zoom, v->ui_params.zoom);
 
 	for (int j = 0; j < DIMS; j++) {
 
@@ -498,10 +454,24 @@ void ui_set_params(struct view_s* v)
 
 		if (selected != v->ui_params.selected[j])
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(v->ui->gtk_checkall[j]), v->ui_params.selected[j] ? TRUE : FALSE);
-	}
 
-	in_callback = false;
+		gtk_adjustment_set_value(v->ui->gtk_posall[j], v->settings.pos[j]);
+	}
 
 	gtk_widget_set_sensitive(GTK_WIDGET(v->ui->gtk_mode),
 		v->settings.plot ? FALSE : TRUE);
+
+	gtk_combo_box_set_active(v->ui->gtk_mode, v->settings.mode);
+
+	gtk_adjustment_configure(v->ui->gtk_winhigh, v->settings.winhigh, 0, v->ui_params.windowing_max, v->ui_params.windowing_inc, gtk_adjustment_get_page_increment(v->ui->gtk_winhigh), gtk_adjustment_get_page_size(v->ui->gtk_winhigh));
+	gtk_adjustment_configure(v->ui->gtk_winlow, v->settings.winlow, 0, v->ui_params.windowing_max, v->ui_params.windowing_inc, gtk_adjustment_get_page_increment(v->ui->gtk_winlow), gtk_adjustment_get_page_size(v->ui->gtk_winlow));
+	gtk_spin_button_set_digits(v->ui->gtk_button_winhigh, v->ui_params.windowing_digits);
+	gtk_spin_button_set_digits(v->ui->gtk_button_winlow, v->ui_params.windowing_digits);
+
+	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_scale1), v->settings.absolute_windowing ? FALSE : TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_scale2), v->settings.absolute_windowing ? FALSE : TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_button1), v->settings.absolute_windowing ? TRUE : FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(v->ui->toolbar_button2), v->settings.absolute_windowing ? TRUE : FALSE);
+
+	atomic_flag_clear(&v->ui->in_callback);
 }
