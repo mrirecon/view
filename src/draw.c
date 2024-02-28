@@ -72,6 +72,20 @@ static void trans_magnitude_turbo(double rgb[3], double a, double b, complex dou
 	interpolate_cmap(rgb, magn, turbo);
 }
 
+static void trans_magnitude_lipari(double rgb[3], double a, double b, complex double value)
+{
+	double magn = window(a, b, cabs(value));
+
+	interpolate_cmap(rgb, magn, lipari);
+}
+
+static void trans_magnitude_navia(double rgb[3], double a, double b, complex double value)
+{
+	double magn = window(a, b, cabs(value));
+
+	interpolate_cmap(rgb, magn, navia);
+}
+
 static void trans_real(double rgb[3], double a, double b, complex double value)
 {
 	rgb[0] *= window(a, b, +creal(value));
@@ -366,6 +380,8 @@ extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4
 				case REAL: trans_real(rgb, winlow, winhigh, val); break;
 				case MAGN_TURBO: trans_magnitude_turbo(rgb, winlow, winhigh, val); break;
 				case FLOW: trans_flow(rgb, winlow, winhigh, val); break;
+				case LIPARI_T1: trans_magnitude_lipari(rgb, winlow, winhigh, val); break;
+				case NAVIA_T2: trans_magnitude_navia(rgb, winlow, winhigh, val); break;
 				default: assert(0);
 				}
 

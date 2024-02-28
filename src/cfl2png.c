@@ -78,6 +78,8 @@ int main(int argc, char* argv[argc])
 		OPT_SELECT('R', enum mode_t, &mode, REAL, 		"real"),
 		OPT_SELECT('T', enum mode_t, &mode, MAGN_TURBO,		"magnitude turbo"),
 		OPT_SELECT('F', enum mode_t, &mode, FLOW, 		"flow"),
+		OPT_SELECT('1', enum mode_t, &mode, LIPARI_T1, 		"lipari (T1, R1)"),
+		OPT_SELECT('2', enum mode_t, &mode, NAVIA_T2, 		"navia (T2, R2)"),
 	};
 
 	struct opt_s flipopt[] = {
