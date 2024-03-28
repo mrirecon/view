@@ -364,6 +364,15 @@ extern gboolean toogle_absolute_windowing_callback(GtkToggleToolButton* button, 
 	return FALSE;
 }
 
+static gboolean io_callback(GIOChannel *gio_channel, GIOCondition giocondition, gpointer data)
+{
+	struct io_callback_data* cb = (struct io_callback_data*)data;
+
+	cb->f(cb->context);
+
+	return TRUE;
+}
+
 
 extern void ui_configure(struct view_s *v)
 {
@@ -489,6 +498,12 @@ void ui_main()
 void ui_loop_quit()
 {
 	gtk_main_quit();
+}
+
+void ui_add_io_callback(int fd, struct io_callback_data* cb)
+{
+	GIOChannel* giochannel_strm = g_io_channel_unix_new(fd);
+	g_io_add_watch(giochannel_strm, G_IO_IN, io_callback, cb);
 }
 
 

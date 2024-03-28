@@ -70,7 +70,7 @@ struct view_s {
 
 
 // setup etc
-extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const _Complex float* x, _Bool absolute_windowing, enum color_t ctab);
+extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const _Complex float* x, _Bool absolute_windowing, enum color_t ctab, int realtime);
 
 extern void window_connect_sync(struct view_s* a, struct view_s* b);
 

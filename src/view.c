@@ -19,6 +19,15 @@
 #include "misc/png.h"
 #include "misc/debug.h"
 
+#if defined __has_include
+#if __has_include ("misc/stream.h")
+#define HAS_BART_STREAM
+#endif
+#endif
+#if defined HAS_BART_STREAM
+#include "misc/stream.h"
+#endif
+
 #include "draw.h"
 
 #include "view.h"
@@ -40,6 +49,9 @@ struct view_control_s {
 	long dims[DIMS];
 	long strs[DIMS];
 	const complex float* data;
+
+	int realtime;
+	struct io_callback_data rt_callback;
 
 	// interpolation buffer
 	complex float* buf;
@@ -71,6 +83,9 @@ struct view_control_s {
 
 static void view_window_nosync(struct view_s* v, enum mode_t mode, double winlow, double winhigh);
 static void view_geom2(struct view_s* v);
+
+static void add_rt_callback(struct view_s *ptr);
+static void view_ff_realtime_position(struct view_s *v);
 
 #if 0
 static void add_text(cairo_surface_t* surface, int x, int y, int size, const char* text)
@@ -752,7 +767,7 @@ void view_window_close(struct view_s* v)
 
 
 struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x,
-		bool absolute_windowing, enum color_t ctab)
+		bool absolute_windowing, enum color_t ctab, int realtime)
 {
 	struct view_s* v = create_view(name, pos, dims, x);
 
@@ -772,6 +787,13 @@ struct view_s* window_new(const char* name, const long pos[DIMS], const long dim
 	view_window(v, v->settings.mode, v->settings.winlow, v->settings.winhigh);
 
 	ui_set_params(v, v->ui_params, v->settings);
+
+	v->control->realtime = realtime;
+	if (0 <= realtime) {
+
+		view_ff_realtime_position(v);
+		add_rt_callback(v);
+	}
 
 	view_release(v);
 
@@ -793,7 +815,7 @@ void window_connect_sync(struct view_s* v, struct view_s* v2)
 struct view_s* view_window_clone(struct view_s* v)
 {
 	struct view_s* v2 = window_new(v->name, v->settings.pos, v->control->dims, v->control->data,
-			v->settings.absolute_windowing, v->settings.colortable);
+			v->settings.absolute_windowing, v->settings.colortable, v->control->realtime);
 
 	window_connect_sync(v, v2);
 
@@ -822,3 +844,50 @@ void view_toggle_plot(struct view_s* v)
 	ui_trigger_redraw(v);
 }
 
+
+static void view_ff_realtime_position(struct view_s *v)
+{
+#if defined HAS_BART_STREAM
+	struct view_control_s* control = v->control;
+	stream_t s = stream_lookup(control->data);
+
+	if (NULL == s)
+		return;
+
+	stream_fetch(s);
+
+	long pos[DIMS] = { 0 };
+	stream_get_latest_pos(s, DIMS, pos);
+
+	long new_pos = pos[control->realtime];
+
+	if (new_pos > v->settings.pos[control->realtime]) {
+
+		v->settings.pos[control->realtime] = new_pos;
+		ui_set_params(v, v->ui_params, v->settings);
+		view_sync(v);
+
+		control->rgb_invalid = true;
+		view_refresh(v);
+	}
+#endif
+}
+
+static void add_rt_callback(struct view_s *v)
+{
+#if defined HAS_BART_STREAM
+	stream_t s = stream_lookup(v->control->data);
+
+	if (NULL == s)
+		return;
+
+	int fd = stream_get_fd(s);
+
+	if (0 <= fd) {
+
+		v->control->rt_callback.context = v;
+		v->control->rt_callback.f = (io_callback_function)view_ff_realtime_position;
+		ui_add_io_callback(fd, &v->control->rt_callback);
+	}
+#endif
+}

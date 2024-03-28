@@ -4,8 +4,15 @@
  * a BSD-style license which can be found in the LICENSE file.
  */
 
+#include "num/multind.h"
 #include <complex.h>
 #include <string.h>
+
+#if defined __has_include
+#if __has_include ("misc/stream.h")
+#define HAS_BART_STREAM
+#endif
+#endif
 
 #include "misc/misc.h"
 #include "misc/mmio.h"
@@ -29,6 +36,7 @@ int main(int argc, char* argv[argc])
 {
 	int count;
 	const char** in_files;
+	int realtime = -1;
 
 	struct arg_s args[] = {
 
@@ -46,6 +54,10 @@ int main(int argc, char* argv[argc])
 		OPT_SELECT('T', enum color_t, &ctab, TURBO, "turbo"),
 		OPT_SELECT('L', enum color_t, &ctab, LIPARI, "lipari"),
 		OPT_SELECT('N', enum color_t, &ctab, NAVIA, "navia"),
+
+#if defined HAS_BART_STREAM
+		OPTL_INT(0, "real-time", &realtime, "x", "Realtime Input along axis x"),
+#endif
 	};
 
 	cmdline(&argc, argv, ARRAY_SIZE(args), args, help_str, ARRAY_SIZE(opts), opts);
@@ -80,14 +92,28 @@ int main(int argc, char* argv[argc])
 
 		io_reserve_input(in_files[i]);
 
+#if defined HAS_BART_STREAM
+		complex float* x = (0 <= realtime ? load_async_cfl : load_cfl)(in_files[i], DIMS, dims);
+#else
 		complex float* x = load_cfl(in_files[i], DIMS, dims);
+#endif
 
 		long pos[DIMS] = { 0 };
 		for (int i = 0; i < 3; i++)
 			pos[i] = dims[i] / 2;
 
+		// absolute windowing for realtime. avoids access to 'unsynced'
+		// memory when calculating the windowing
+		if (0 <= realtime) {
+
+			absolute_windowing = true;
+
+			// don't set position for streamed dimension.
+			md_select_strides(DIMS, ~MD_BIT(realtime), pos, pos);
+		}
+
 		// FIXME: we never delete them
-		struct view_s* v2 = window_new(in_files[i], pos, dims, x, absolute_windowing, ctab);
+		struct view_s* v2 = window_new(in_files[i], pos, dims, x, absolute_windowing, ctab, realtime);
 
 		// If multiple files are passed on the commandline, add them to window
 		// list. This enables sync of windowing and so on...
