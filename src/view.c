@@ -1,4 +1,5 @@
-/* Copyright 2015-2016. Martin Uecker.
+/* Copyright 2015-2019. Martin Uecker.
+ * Copyright 2023-2024. TU Graz. Institute of Biomedical Imaging.
  * All rights reserved. Use of this source code is governed by
  * a BSD-style license which can be found in the LICENSE file.
  */
@@ -30,6 +31,7 @@
 #endif
 
 struct view_control_s {
+
 	// change-management
 	bool invalid;
 	bool rgb_invalid;
@@ -67,8 +69,8 @@ struct view_control_s {
 	double aniso;
 };
 
-static void _view_window(struct view_s* v, enum mode_t mode, double winlow, double winhigh);
-static void _view_geom(struct view_s* v);
+static void view_window_nosync(struct view_s* v, enum mode_t mode, double winlow, double winhigh);
+static void view_geom2(struct view_s* v);
 
 #if 0
 static void add_text(cairo_surface_t* surface, int x, int y, int size, const char* text)
@@ -144,7 +146,8 @@ void view_sync(struct view_s* v)
 
 			v2->settings.pos[v->settings.xdim] = v->settings.pos[v->settings.xdim];
 			v2->settings.pos[v->settings.ydim] = v->settings.pos[v->settings.ydim];
-			_view_window(v2, v->settings.mode, v->settings.winlow, v->settings.winhigh);
+
+			view_window_nosync(v2, v->settings.mode, v->settings.winlow, v->settings.winhigh);
 
 			ui_set_params(v2, v2->ui_params, v2->settings);
 
@@ -237,10 +240,10 @@ void view_geom(struct view_s* v, const bool* selected, const long* pos, double z
 	v->settings.flip = flip;
 	v->settings.interpolation = interp;
 
-	_view_geom(v);
+	view_geom2(v);
 }
 
-static void _view_geom(struct view_s* v)
+static void view_geom2(struct view_s* v)
 {
 	for (int j = 0; j < DIMS; j++) {
 
@@ -307,7 +310,7 @@ static void _view_geom(struct view_s* v)
 	ui_trigger_redraw(v);
 }
 
-static void _view_window(struct view_s* v, enum mode_t mode, double winlow, double winhigh)
+static void view_window_nosync(struct view_s* v, enum mode_t mode, double winlow, double winhigh)
 {
 	v->settings.mode = mode;
 	v->settings.winlow = winlow;
@@ -319,7 +322,7 @@ static void _view_window(struct view_s* v, enum mode_t mode, double winlow, doub
 
 void view_window(struct view_s* v, enum mode_t mode, double winlow, double winhigh)
 {
-	_view_window(v, mode, winlow, winhigh);
+	view_window_nosync(v, mode, winlow, winhigh);
 	view_sync(v);
 }
 
@@ -349,7 +352,7 @@ bool view_save_pngmovie(struct view_s* v, const char *folder)
 {
 	int frame_dim = 10;
 
-	for (unsigned int f = 0; f < v->control->dims[frame_dim]; f++) {
+	for (int f = 0; f < v->control->dims[frame_dim]; f++) {
 
 		v->settings.pos[frame_dim] = f;
 		update_buf_view(v);
@@ -409,7 +412,7 @@ static struct xy_s pos2screen(const struct view_s* v, const float (*pos)[DIMS])
 
 static void screen2pos(const struct view_s* v, float (*pos)[DIMS], struct xy_s xy)
 {
-	for (unsigned int i = 0; i < DIMS; i++)
+	for (int i = 0; i < DIMS; i++)
 		(*pos)[i] = v->settings.pos[i];
 
 	float x = xy.x / v->settings.xzoom - 0.5;
@@ -488,7 +491,7 @@ void view_draw(struct view_s* v)
 	if (v->settings.cross_hair) {
 
 		float posi[DIMS];
-		for (unsigned int i = 0; i < DIMS; i++)
+		for (int i = 0; i < DIMS; i++)
 			posi[i] = v->settings.pos[i];
 
 		struct xy_s xy = pos2screen(v, &posi);
@@ -506,7 +509,8 @@ void view_draw(struct view_s* v)
 	if (v->control->status_bar) {
 
 		float posi[DIMS];
-		for (unsigned int i = 0; i < DIMS; i++)
+
+		for (int i = 0; i < DIMS; i++)
 			posi[i] = v->settings.pos[i];
 
 		update_status_bar(v, &posi);
@@ -613,8 +617,10 @@ static void delete_view(struct view_s* v)
 
 static void view_set_windowing(struct view_s* v)
 {
-	double max = v->settings.absolute_windowing ? v->control->max : 1;
+	double max = v->settings.absolute_windowing ? v->control->max : 1.;
+
 	max = MIN(1.e10, max);
+
 	v->ui_params.windowing_max = max;
 	v->ui_params.windowing_inc = exp(log(10) * round(log(max) / log(10.))) * 0.001;
 	v->ui_params.windowing_digits =  MAX(3, 3 - (int)round(log(max) / log(10.)));
@@ -757,7 +763,7 @@ struct view_s* window_new(const char* name, const long pos[DIMS], const long dim
 
 //	fit_callback(NULL, v);
 	view_refresh(v);
-	_view_geom(v);
+	view_geom2(v);
 	view_set_windowing(v);
 	view_window(v, v->settings.mode, v->settings.winlow, v->settings.winhigh);
 
@@ -799,7 +805,7 @@ void view_fit(struct view_s* v, int width, int height)
 
 	v->ui_params.zoom = yz;
 
-	_view_geom(v);
+	view_geom2(v);
 }
 
 void view_toggle_plot(struct view_s* v)
@@ -810,3 +816,4 @@ void view_toggle_plot(struct view_s* v)
 	ui_set_params(v, v->ui_params, v->settings);
 	ui_trigger_redraw(v);
 }
+

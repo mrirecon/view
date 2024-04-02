@@ -70,7 +70,6 @@ extern struct view_s* window_new(const char* name, const long pos[DIMS], const l
 extern void window_connect_sync(struct view_s* a, struct view_s* b);
 
 
-
 // usually callbacks:
 extern void view_fit(struct view_s* v, int width, int height);
 extern void view_geom(struct view_s* v, const bool* selected, const long* pos, double zoom, double aniso, _Bool transpose, enum flip_t flip, enum interp_t interp);
@@ -97,13 +96,11 @@ extern void view_window_close(struct view_s* v);
 
 
 //
-
 extern _Bool view_acquire(struct view_s* v, _Bool wait);
 extern void view_release(struct view_s* v);
-
-
 
 // helpers
 extern char *construct_filename_view2(struct view_s* v);
 
 #endif
+
