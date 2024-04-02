@@ -289,6 +289,7 @@ static void view_geom2(struct view_s* v)
 			v->settings.xdim = v->settings.ydim;
 			v->settings.ydim = swp;
 		}
+
 	} else {
 
 		if (v->settings.xdim > v->settings.ydim) {
@@ -358,7 +359,7 @@ bool view_save_pngmovie(struct view_s* v, const char *folder)
 		update_buf_view(v);
 
 		draw(v->control->rgbw, v->control->rgbh, v->control->rgbstr, (unsigned char(*)[v->control->rgbw][v->control->rgbstr / 4][4])v->control->rgb,
-			v->settings.mode, 1. / v->control->max, v->settings.winlow, v->settings.winhigh, v->settings.phrot,
+			v->settings.mode, v->settings.colortable, 1. / v->control->max, v->settings.winlow, v->settings.winhigh, v->settings.phrot,
 			v->control->rgbw, v->control->buf);
 
 		char output_name[256];
@@ -479,7 +480,7 @@ void view_draw(struct view_s* v)
 
 		(v->settings.plot ? draw_plot : draw)(v->control->rgbw, v->control->rgbh, v->control->rgbstr,
 			(unsigned char(*)[v->control->rgbw][v->control->rgbstr / 4][4])v->control->rgb,
-			v->settings.mode, v->settings.absolute_windowing ? 1. : 1. / v->control->max, v->settings.winlow, v->settings.winhigh, v->settings.phrot,
+			v->settings.mode, v->settings.colortable, v->settings.absolute_windowing ? 1. : 1. / v->control->max, v->settings.winlow, v->settings.winhigh, v->settings.phrot,
 			v->control->rgbw, v->control->buf);
 
 		v->control->rgb_invalid = false;
@@ -548,6 +549,7 @@ struct view_s* create_view(const char* name, const long pos[DIMS], const long di
 
 	v->settings.mode = MAGN;
 	v->settings.interpolation = NLINEAR;
+	v->settings.colortable = NONE;
 	v->settings.flip = OO;
 	v->settings.cross_hair = false;
 	v->settings.plot = false;
@@ -750,13 +752,15 @@ void view_window_close(struct view_s* v)
 
 
 
-struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x, bool absolute_windowing)
+struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const complex float* x,
+		bool absolute_windowing, enum color_t ctab)
 {
 	struct view_s* v = create_view(name, pos, dims, x);
 
 	view_acquire(v, true);
 
 	v->settings.absolute_windowing = absolute_windowing;
+	v->settings.colortable = ctab;
 
 	ui_window_new(v, DIMS, dims, v->settings);
 	nr_windows++;
@@ -788,7 +792,8 @@ void window_connect_sync(struct view_s* v, struct view_s* v2)
 
 struct view_s* view_window_clone(struct view_s* v)
 {
-	struct view_s* v2 = window_new(v->name, v->settings.pos, v->control->dims, v->control->data, v->settings.absolute_windowing);
+	struct view_s* v2 = window_new(v->name, v->settings.pos, v->control->dims, v->control->data,
+			v->settings.absolute_windowing, v->settings.colortable);
 
 	window_connect_sync(v, v2);
 
@@ -811,8 +816,8 @@ void view_fit(struct view_s* v, int width, int height)
 void view_toggle_plot(struct view_s* v)
 {
 	v->settings.plot = !v->settings.plot;
-
 	v->control->invalid = true;
+
 	ui_set_params(v, v->ui_params, v->settings);
 	ui_trigger_redraw(v);
 }

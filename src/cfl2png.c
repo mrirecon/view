@@ -34,8 +34,33 @@ extern void io_unregister(const char* name);
 #define DIMS 16
 #endif
 
+enum cmode_t {
+	CM_MAGN, CM_MAGN_VIRIDIS, CM_CMPL, CM_CMPL_MYGBM, CM_PHSE, CM_PHSE_MYGBM,
+	CM_REAL, CM_MAGN_TURBO, CM_FLOW, CM_LIPARI_T1, CM_NAVIA_T2,
+};
 
-static void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], bool absolute_windowing, float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], unsigned long loopflags, long pos[DIMS], const complex float* idata);
+struct {
+	enum mode_t mode;
+	enum color_t ctab;
+
+} cm_table[] = {
+
+	[CM_MAGN] = { MAGN, NONE },
+	[CM_MAGN_VIRIDIS] = { MAGN, VIRIDIS },
+	[CM_MAGN_TURBO] = { MAGN, TURBO },
+	[CM_LIPARI_T1] = { MAGN, LIPARI },
+	[CM_NAVIA_T2] = { MAGN, NAVIA },
+	[CM_CMPL] = { CMPLX, NONE },
+	[CM_CMPL_MYGBM] = { CMPLX, MYGBM },
+	[CM_REAL] = { REAL, NONE },
+	[CM_FLOW] = { FLOW, NONE },
+};
+
+
+static void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2],
+		bool absolute_windowing, float zoom, enum mode_t mode, enum color_t ctab,
+		enum flip_t flip, enum interp_t interpolation, const long dims[DIMS],
+		unsigned long loopflags, long pos[DIMS], const complex float* idata);
 
 
 static const char help_str[] = "Export images to png.";
@@ -58,7 +83,6 @@ int main(int argc, char* argv[argc])
 	int ydim = 0;
 	float windowing[2] = {0.f, 1.f};
 	bool absolute_windowing = false;
-	enum mode_t mode = MAGN;
 	float zoom =2.f;
 	enum flip_t flip = OO;
 	enum interp_t interpolation = NLINEAR;
@@ -68,18 +92,18 @@ int main(int argc, char* argv[argc])
 	long pos_slc[DIMS] = { [0 ... DIMS - 1] = 0  };
 	int pos_count = 0;
 
+	enum cmode_t mode = CM_MAGN;
+
 	struct opt_s modeopt[] = {
-		OPT_SELECT('M', enum mode_t, &mode, MAGN, 		"magnitude gray (default) "),
-		OPT_SELECT('V', enum mode_t, &mode, MAGN_VIRIDS, 	"magnitude viridis"),
-		OPT_SELECT('C', enum mode_t, &mode, CMPL,	 	"complex"),
-		OPT_SELECT('G', enum mode_t, &mode, CMPL_MYGBM,	 	"complex MYGBM"),
-		OPT_SELECT('P', enum mode_t, &mode, PHSE, 		"phase"),
-		OPT_SELECT('Y', enum mode_t, &mode, PHSE_MYGBM, 	"phase MYGBM"),
-		OPT_SELECT('R', enum mode_t, &mode, REAL, 		"real"),
-		OPT_SELECT('T', enum mode_t, &mode, MAGN_TURBO,		"magnitude turbo"),
-		OPT_SELECT('F', enum mode_t, &mode, FLOW, 		"flow"),
-		OPT_SELECT('1', enum mode_t, &mode, LIPARI_T1, 		"lipari (T1, R1)"),
-		OPT_SELECT('2', enum mode_t, &mode, NAVIA_T2, 		"navia (T2, R2)"),
+		OPT_SELECT('M', enum cmode_t, &mode, CM_MAGN, 		"magnitude gray (default) "),
+		OPT_SELECT('V', enum cmode_t, &mode, CM_MAGN_VIRIDIS, 	"magnitude viridis"),
+		OPT_SELECT('C', enum cmode_t, &mode, CM_CMPL,	 	"complex"),
+		OPT_SELECT('G', enum cmode_t, &mode, CM_CMPL_MYGBM, 	"complex MYGBM"),
+		OPT_SELECT('P', enum cmode_t, &mode, CM_PHSE, 		"phase"),
+		OPT_SELECT('Y', enum cmode_t, &mode, CM_PHSE_MYGBM, 	"phase MYGBM"),
+		OPT_SELECT('R', enum cmode_t, &mode, CM_REAL, 		"real"),
+		OPT_SELECT('T', enum cmode_t, &mode, CM_MAGN_TURBO,	"magnitude turbo"),
+		OPT_SELECT('F', enum cmode_t, &mode, CM_FLOW, 		"flow"),
 	};
 
 	struct opt_s flipopt[] = {
@@ -165,7 +189,11 @@ int main(int argc, char* argv[argc])
 			*ext = '\0';
 	}
 
-	export_images(out_prefix, xdim, ydim, windowing, absolute_windowing, zoom, mode, flip, interpolation, dims, ~sliceflags, pos, idata);
+
+
+	export_images(out_prefix, xdim, ydim, windowing, absolute_windowing, zoom,
+			cm_table[mode].mode, cm_table[mode].ctab, flip, interpolation,
+			dims, ~sliceflags, pos, idata);
 
 
 	unmap_cfl(DIMS, dims, idata);
@@ -191,7 +219,9 @@ static void unravel_index(int D, long pos[D], unsigned long flags, const long di
 	}
 }
 
-void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], bool absolute_windowing, float zoom, enum mode_t mode, enum flip_t flip, enum interp_t interpolation, const long dims[DIMS], unsigned long loopflags, long _pos[DIMS], const complex float* idata)
+void export_images(const char* output_prefix, int xdim, int ydim, float windowing[2], bool absolute_windowing,
+		float zoom, enum mode_t mode, enum color_t ctab, enum flip_t flip, enum interp_t interpolation,
+		const long dims[DIMS], unsigned long loopflags, long _pos[DIMS], const complex float* idata)
 {
 	if (xdim == ydim) {
 
@@ -213,6 +243,7 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 	if (absolute_windowing) {
 
 		max = 1.;
+
 	} else {
 
 		for (long j = 0; j < md_calc_size(DIMS, dims); j++)
@@ -269,7 +300,7 @@ void export_images(const char* output_prefix, int xdim, int ydim, float windowin
 		unsigned char* rgb = xmalloc(rgbh * rgbstr);
 
 		draw(rgbw, rgbh, rgbstr, (unsigned char(*)[rgbw][rgbstr / 4][4])rgb,
-			mode, 1. / max, windowing[0], windowing[1], 0,
+			mode, ctab, 1. / max, windowing[0], windowing[1], 0,
 			rgbw, buf);
 
 		xfree(buf);

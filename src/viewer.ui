@@ -15,37 +15,19 @@
     </columns>
     <data>
       <row>
-        <col id="0" translatable="yes">MAGNITUDE (gray)</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">MAGNITUDE (viridis)</col>
+        <col id="0" translatable="yes">MAGNITUDE</col>
       </row>
       <row>
         <col id="0" translatable="yes">COMPLEX</col>
       </row>
       <row>
-        <col id="0" translatable="yes">COMPLEX (MYGBM)</col>
-      </row>
-      <row>
         <col id="0" translatable="yes">PHASE</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">PHASE (MYGBM)</col>
       </row>
       <row>
         <col id="0" translatable="yes">REAL</col>
       </row>
       <row>
-        <col id="0" translatable="yes">MAGNITUDE (turbo)</col>
-      </row>
-      <row>
         <col id="0" translatable="yes">FLOW</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Lipari (T1, R1)</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Navia (T2, R2)</col>
       </row>
     </data>
   </object>

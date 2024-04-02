@@ -38,14 +38,6 @@ static double window(double a, double b, double x)
 	return clamp(0., 1., (x - a) / (b - a));
 }
 
-static void trans_magnitude(double rgb[3], double a, double b, complex double value)
-{
-	double magn = window(a, b, cabs(value));
-
-	rgb[0] *= magn;
-	rgb[1] *= magn;
-	rgb[2] *= magn;
-}
 
 static void interpolate_cmap(double rgb[3], double x, const double cmap[256][3])
 {
@@ -58,76 +50,74 @@ static void interpolate_cmap(double rgb[3], double x, const double cmap[256][3])
 		rgb[i] *= cmap[a][i] + f * (cmap[b][i] - cmap[a][i]);
 }
 
-static void trans_magnitude_viridis(double rgb[3], double a, double b, complex double value)
+typedef const double color_table_t[256][3];
+
+static color_table_t* ctables[] = {
+	[VIRIDIS] = &viridis,
+	[MYGBM] = &cyclic_mygbm,
+	[TURBO] = &turbo,
+	[LIPARI] = &lipari,
+	[NAVIA] = &navia,
+};
+
+
+static void trans_magnitude(double rgb[3], enum color_t ctab, double a, double b, complex double value)
 {
 	double magn = window(a, b, cabs(value));
 
-	interpolate_cmap(rgb, magn, viridis);
+	switch (ctab) {
+
+	case NONE:
+
+		rgb[0] *= magn;
+		rgb[1] *= magn;
+		rgb[2] *= magn;
+		break;
+
+	default:
+
+		interpolate_cmap(rgb, magn, *ctables[ctab]);
+		break;
+	}
 }
 
-static void trans_magnitude_turbo(double rgb[3], double a, double b, complex double value)
-{
-	double magn = window(a, b, cabs(value));
-
-	interpolate_cmap(rgb, magn, turbo);
-}
-
-static void trans_magnitude_lipari(double rgb[3], double a, double b, complex double value)
-{
-	double magn = window(a, b, cabs(value));
-
-	interpolate_cmap(rgb, magn, lipari);
-}
-
-static void trans_magnitude_navia(double rgb[3], double a, double b, complex double value)
-{
-	double magn = window(a, b, cabs(value));
-
-	interpolate_cmap(rgb, magn, navia);
-}
-
-static void trans_real(double rgb[3], double a, double b, complex double value)
+static void trans_real(double rgb[3], enum color_t /* ctab */, double a, double b, complex double value)
 {
 	rgb[0] *= window(a, b, +creal(value));
 	rgb[1] *= window(a, b, -creal(value));
 	rgb[2] *= 0.;
 }
 
-static void trans_phase(double rgb[3], double /*a*/, double /*b*/, complex double value)
-{
-	rgb[0] *= (1. + sin(carg(value) + 0. * 2. * M_PI / 3.)) / 2.;
-	rgb[1] *= (1. + sin(carg(value) + 1. * 2. * M_PI / 3.)) / 2.;
-	rgb[2] *= (1. + sin(carg(value) + 2. * 2. * M_PI / 3.)) / 2.;
-}
-
-static void trans_phase_MYGBM(double rgb[3], double /*a*/, double /*b*/, complex double value)
+static void trans_phase(double rgb[3], enum color_t ctab, double /*a*/, double /*b*/, complex double value)
 {
 	double arg = carg(value);
 
-	if (isfinite(arg)) {
+	switch (ctab) {
 
+	case MYGBM:
 		double val = (arg + M_PI) / 2. / M_PI;
 		assert((0.0 <= val) && (val <= 1.0));
 	
 		interpolate_cmap(rgb, val, cyclic_mygbm);
+		break;
+
+	default:
+		rgb[0] *= (1. + sin(arg + 0. * 2. * M_PI / 3.)) / 2.;
+		rgb[1] *= (1. + sin(arg + 1. * 2. * M_PI / 3.)) / 2.;
+		rgb[2] *= (1. + sin(arg + 2. * 2. * M_PI / 3.)) / 2.;
+		break;
 	}
 }
 
-static void trans_complex(double rgb[3], double a, double b, complex double value)
+static void trans_complex(double rgb[3], enum color_t ctab, double a, double b, complex double value)
 {
-	trans_magnitude(rgb, a, b, value);
-	trans_phase(rgb, a, b, value);
+	trans_magnitude(rgb, NONE, a, b, value);
+	trans_phase(rgb, ctab, a, b, value);
 }
 
-static void trans_complex_MYGBM(double rgb[3], double a, double b, complex double value)
+static void trans_flow(double rgb[3], enum color_t ctab, double a, double b, complex double value)
 {
-	trans_magnitude(rgb, a, b, value);
-	trans_phase_MYGBM(rgb, a, b, value);
-}
-
-static void trans_flow(double rgb[3], double a, double b, complex double value)
-{
-	trans_magnitude(rgb, a, b, value);
+	trans_magnitude(rgb, NONE, a, b, value);
 
 	double pha = clamp(-1., 1., carg(value) / M_PI);
 
@@ -354,7 +344,7 @@ extern void resample(int X, int Y, long str, complex float* buf,
 
 
 extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4],
-	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
+	enum mode_t mode, enum color_t ctab, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf)
 {
 #pragma omp parallel for collapse(2)
@@ -371,17 +361,11 @@ extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4
 
 				switch (mode) {
 
-				case MAGN: trans_magnitude(rgb, winlow, winhigh, val); break;
-				case MAGN_VIRIDS: trans_magnitude_viridis(rgb, winlow, winhigh, val); break;
-				case PHSE: trans_phase(rgb, winlow, winhigh, val); break;
-				case PHSE_MYGBM: trans_phase_MYGBM(rgb, winlow, winhigh, val); break;
-				case CMPL: trans_complex(rgb, winlow, winhigh, val); break;
-				case CMPL_MYGBM: trans_complex_MYGBM(rgb, winlow, winhigh, val); break;
-				case REAL: trans_real(rgb, winlow, winhigh, val); break;
-				case MAGN_TURBO: trans_magnitude_turbo(rgb, winlow, winhigh, val); break;
-				case FLOW: trans_flow(rgb, winlow, winhigh, val); break;
-				case LIPARI_T1: trans_magnitude_lipari(rgb, winlow, winhigh, val); break;
-				case NAVIA_T2: trans_magnitude_navia(rgb, winlow, winhigh, val); break;
+				case MAGN: trans_magnitude(rgb, ctab, winlow, winhigh, val); break;
+				case PHASE: trans_phase(rgb, ctab, winlow, winhigh, val); break;
+				case CMPLX: trans_complex(rgb, ctab, winlow, winhigh, val); break;
+				case REAL: trans_real(rgb, ctab, winlow, winhigh, val); break;
+				case FLOW: trans_flow(rgb, ctab, winlow, winhigh, val); break;
 				default: assert(0);
 				}
 
@@ -496,7 +480,7 @@ extern void draw_grid(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbst
 
 
 extern void draw_plot(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4],
-	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
+	enum mode_t mode, enum color_t /* ctab */, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf)
 {
 	unsigned char bg[4] = { 255, 255, 255, 0 };

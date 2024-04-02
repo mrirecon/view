@@ -7,9 +7,12 @@
 
 #include <stdbool.h>
 
-enum mode_t { MAGN, MAGN_VIRIDS, CMPL, CMPL_MYGBM, PHSE, PHSE_MYGBM, REAL, MAGN_TURBO, FLOW, LIPARI_T1, NAVIA_T2 };
+
+enum mode_t { MAGN, CMPLX, PHASE, REAL, FLOW };
 enum flip_t { OO, XO, OY, XY };
 enum interp_t { NLINEAR, NLINEARMAG, NEAREST, LIINCO };
+enum color_t { NONE, VIRIDIS, MYGBM, TURBO, LIPARI, NAVIA };
+
 
 struct view_settings_s {
 
@@ -35,6 +38,7 @@ struct view_settings_s {
 	double phrot;
 
 	enum interp_t interpolation;
+	enum color_t colortable;
 };
 
 struct view_ui_params_s {
@@ -49,6 +53,7 @@ struct view_ui_params_s {
 
 
 struct view_s {
+
 	const char* name;
 
 	struct view_control_s* control;
@@ -65,7 +70,7 @@ struct view_s {
 
 
 // setup etc
-extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const _Complex float* x, _Bool absolute_windowing);
+extern struct view_s* window_new(const char* name, const long pos[DIMS], const long dims[DIMS], const _Complex float* x, _Bool absolute_windowing, enum color_t ctab);
 
 extern void window_connect_sync(struct view_s* a, struct view_s* b);
 

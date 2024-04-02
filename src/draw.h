@@ -11,11 +11,11 @@ extern void resample(int X, int Y, long str, complex float* buf,
 	const long dims[N], const long strs[N], enum interp_t interpolation, const complex float* in);
 
 extern void draw(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4],
-	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
+	enum mode_t mode, enum color_t ctab, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf);
 
 extern void draw_plot(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4],
-	enum mode_t mode, float scale, float winlow, float winhigh, float phrot,
+	enum mode_t mode, enum color_t ctab, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf);
 
 extern void update_buf(long xdim, long ydim, int N, const long dims[N],  const long strs[N], const long pos[N],

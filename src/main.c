@@ -38,10 +38,16 @@ int main(int argc, char* argv[argc])
 	};
 
 	bool absolute_windowing = false;
+	enum color_t ctab = NONE;;
 
 	const struct opt_s opts[] = {
 
 		OPT_SET('a', &absolute_windowing, "Use absolute windowing"),
+		OPT_SELECT('V', enum color_t, &ctab, VIRIDIS, "viridis"),
+		OPT_SELECT('Y', enum color_t, &ctab, MYGBM, "MYGBM"),
+		OPT_SELECT('T', enum color_t, &ctab, TURBO, "turbo"),
+		OPT_SELECT('L', enum color_t, &ctab, LIPARI, "lipari"),
+		OPT_SELECT('N', enum color_t, &ctab, NAVIA, "navia"),
 	};
 
 	cmdline(&argc, argv, ARRAY_SIZE(args), args, help_str, ARRAY_SIZE(opts), opts);
@@ -78,7 +84,7 @@ int main(int argc, char* argv[argc])
 
 
 		// FIXME: we never delete them
-		struct view_s* v2 = window_new(in_files[i], NULL, dims, x, absolute_windowing);
+		struct view_s* v2 = window_new(in_files[i], NULL, dims, x, absolute_windowing, ctab);
 
 		// If multiple files are passed on the commandline, add them to window
 		// list. This enables sync of windowing and so on...
