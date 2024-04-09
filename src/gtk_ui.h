@@ -18,8 +18,9 @@ extern void ui_main();
 extern void ui_init(int* argc_p, char** argv_p[]);
 extern void ui_loop_quit();
 
-
+extern void ui_configure(struct view_s* v);
 extern void ui_trigger_redraw(struct view_s* v);
 
 
 extern bool gtk_ui_save_png(struct view_s* v, const char* filename);
+

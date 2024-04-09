@@ -253,6 +253,7 @@ static void view_geom2(struct view_s* v)
 		if (1 == v->control->dims[j]) {
 
 			v->ui_params.selected[j] = false;
+
 		} else if ((j != v->settings.xdim) && (j != v->settings.ydim)) {
 
 			for (int i = 0; i < DIMS; i++) {
@@ -765,7 +766,8 @@ struct view_s* window_new(const char* name, const long pos[DIMS], const long dim
 	ui_window_new(v, DIMS, dims, v->settings);
 	nr_windows++;
 
-//	fit_callback(NULL, v);
+	ui_configure(v);
+
 	view_refresh(v);
 	view_geom2(v);
 	view_set_windowing(v);

@@ -67,23 +67,16 @@ extern gboolean fit_callback(GtkWidget* /*widget*/, gpointer data)
 {
 	struct view_s* v = data;
 
-	gboolean flag = gtk_toggle_tool_button_get_active(v->ui->gtk_fit);
-
-	if (!flag)
+	if (!view_acquire(v, false))
 		return FALSE;
 
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(v->ui->gtk_viewport, &alloc);
-
-	if (!view_acquire(v,false))
-		return FALSE;
-
-	view_fit(v, alloc.width, alloc.height);
+	ui_configure(v);
 
 	view_release(v);
 
 	return FALSE;
 }
+
 
 extern gboolean configure_callback(GtkWidget *widget, GdkEvent* /*event*/, gpointer data)
 {
@@ -371,6 +364,18 @@ extern gboolean toogle_absolute_windowing_callback(GtkToggleToolButton* button, 
 }
 
 
+extern void ui_configure(struct view_s *v)
+{
+	gboolean flag = gtk_toggle_tool_button_get_active(v->ui->gtk_fit);
+
+	if (!flag)
+		return;
+
+	GtkAllocation alloc;
+	gtk_widget_get_allocation(v->ui->gtk_viewport, &alloc);
+
+	view_fit(v, alloc.width, alloc.height);
+}
 
 void ui_trigger_redraw(struct view_s* v)
 {
