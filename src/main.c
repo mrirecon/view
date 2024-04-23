@@ -81,10 +81,12 @@ int main(int argc, char* argv[argc])
 
 		complex float* x = load_cfl(in_files[i], DIMS, dims);
 
-
+		long pos[DIMS] = { 0 };
+		for (int i = 0; i < 3; i++)
+			pos[i] = dims[i] / 2;
 
 		// FIXME: we never delete them
-		struct view_s* v2 = window_new(in_files[i], NULL, dims, x, absolute_windowing, ctab);
+		struct view_s* v2 = window_new(in_files[i], pos, dims, x, absolute_windowing, ctab);
 
 		// If multiple files are passed on the commandline, add them to window
 		// list. This enables sync of windowing and so on...
