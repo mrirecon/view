@@ -60,7 +60,7 @@ endif
 
 
 ifeq ($(CUDA),1)
-    CUDA_L := -L$(CUDA_BASE)/$(CUDA_LIB) -lcufft -lcudart -lcublas
+    CUDA_L := -L$(CUDA_BASE)/$(CUDA_LIB) -lcufft -lcudart -lcublas -lblas
 else
     CUDA_L :=
 endif
