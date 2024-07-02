@@ -1,14 +1,20 @@
 variables:
   OMP_NUM_THREADS: "1"
 
-
 image: debian:bookworm
 
+
+cache:
+# we use a constant string here, to reuse the cache as much as possible
+    key: view-key
+    paths:
+        - .apt/
+
 before_script:
-  - apt-get update -qq && apt-get install -y -qq
-  - apt-get install -y -qq make git gcc
-  - apt-get install -y -qq libgtk-3-dev
-  - apt-get install -y -qq libbart-dev
+  - mkdir -p .apt
+  - export APT_CACHE_ARCHIVES="$(realpath .apt)"
+  - apt-get update -yqq
+  - apt-get install -y  -o dir::cache::archives="$APT_CACHE_ARCHIVES" make git gcc libgtk-3-dev libbart-dev
 
 stages:
   - build
@@ -26,8 +32,8 @@ Build:
 Test_cfl2png:
   stage: test
   script:
-    - apt-get update -qq && apt-get install -y -qq
-    - apt-get install -y -qq bart
+    # no apt-get update here, as we just updated in the before_script
+    - apt-get install -y  -o dir::cache::archives="$APT_CACHE_ARCHIVES" bart
     - bart phantom pha.ra
     - ./view -h
     - ./cfl2png -x1 -u0.5 -CV pha.ra pha.png
