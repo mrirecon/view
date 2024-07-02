@@ -445,12 +445,17 @@ static void clear_status_bar(struct view_s* v)
 }
 
 
-static void update_status_bar(struct view_s* v, const float (*pos)[DIMS])
+static void update_status_bar(struct view_s* v)
 {
-	int x2 = (*pos)[v->settings.xdim];
-	int y2 = (*pos)[v->settings.ydim];
+	int x2 = v->settings.pos[v->settings.xdim];
+	int y2 = v->settings.pos[v->settings.ydim];
 
-	complex float val = sample(DIMS, *pos, v->control->dims, v->control->strs, v->settings.interpolation, v->control->data);
+	float posf[DIMS];
+	for (int i = 0; i < DIMS; i++)
+		posf[i] = v->settings.pos[i];
+
+
+	complex float val = sample(DIMS, posf, v->control->dims, v->control->strs, v->settings.interpolation, v->control->data);
 
 	// FIXME: make sure this matches exactly the pixel
 	char buf[100];
@@ -512,19 +517,8 @@ void view_draw(struct view_s* v)
 //		draw_grid(v->control->rgbw, v->control->rgbh, v->control->rgbstr, (unsigned char (*)[v->control->rgbw][v->control->rgbstr / 4][4])v->control->rgb, &coords, 4, &color_white);
 	}
 
-	if (v->control->status_bar) {
-
-		float posi[DIMS];
-
-		for (int i = 0; i < DIMS; i++)
-			posi[i] = v->settings.pos[i];
-
-		update_status_bar(v, &posi);
-
-		for (struct view_s* v2 = v->next; v2 != v; v2 = v2->next)
-			if (v->sync && v2->sync)
-				update_status_bar(v2, &posi);
-	}
+	if (v->control->status_bar)
+		update_status_bar(v);
 }
 
 
