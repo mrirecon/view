@@ -392,10 +392,10 @@ fail:
 
 struct xy_s { float x; float y; };
 
-static struct xy_s pos2screen(const struct view_s* v, const float (*pos)[DIMS])
+static struct xy_s pos2screen(const struct view_s* v, const float pos[DIMS])
 {
-	float x = (*pos)[v->settings.xdim];
-	float y = (*pos)[v->settings.ydim];
+	float x = pos[v->settings.xdim];
+	float y = pos[v->settings.ydim];
 
 	if ((XY == v->settings.flip) || (XO == v->settings.flip))
 		x = v->control->dims[v->settings.xdim] - 1 - x;
@@ -501,11 +501,11 @@ void view_draw(struct view_s* v)
 
 	if (v->settings.cross_hair) {
 
-		float posi[DIMS];
+		float posf[DIMS];
 		for (int i = 0; i < DIMS; i++)
-			posi[i] = v->settings.pos[i];
+			posf[i] = v->settings.pos[i];
 
-		struct xy_s xy = pos2screen(v, &posi);
+		struct xy_s xy = pos2screen(v, posf);
 
 		draw_line(v->control->rgbw, v->control->rgbh, v->control->rgbstr, (unsigned char (*)[v->control->rgbw][v->control->rgbstr / 4][4])v->control->rgb,
 				0, (int)xy.y, v->control->rgbw - 1, (int)xy.y, (v->settings.xdim > v->settings.ydim) ? &color_red : &color_blue);
