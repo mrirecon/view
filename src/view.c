@@ -147,8 +147,12 @@ void view_sync(struct view_s* v)
 			v2->settings.pos[v->settings.xdim] = v->settings.pos[v->settings.xdim];
 			v2->settings.pos[v->settings.ydim] = v->settings.pos[v->settings.ydim];
 
-			view_window_nosync(v2, v->settings.mode, v->settings.winlow, v->settings.winhigh);
+			// if we have changed anything outside of the current x/y dims of v2, we need to reinterpolate
+			// this is common when changing slices in 3D datasets
+			if ((v2->settings.xdim != v->settings.xdim) || (v2->settings.ydim != v->settings.ydim))
+				v2->control->invalid = true;
 
+			view_window_nosync(v2, v->settings.mode, v->settings.winlow, v->settings.winhigh);
 			ui_set_params(v2, v2->ui_params, v2->settings);
 
 			view_release(v2);
