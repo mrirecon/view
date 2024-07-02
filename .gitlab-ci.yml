@@ -2,6 +2,8 @@ variables:
   OMP_NUM_THREADS: "1"
 
 
+image: debian:bookworm
+
 before_script:
   - apt-get update -qq && apt-get install -y -qq
   - apt-get install -y -qq make git gcc
@@ -10,9 +12,9 @@ before_script:
 
 stages:
   - build
+  - test
 
 Build:
-  image: debian:bookworm
   stage: build
   script:
     - make all
@@ -21,3 +23,17 @@ Build:
       - view
       - cfl2png
 
+Test_cfl2png:
+  stage: test
+  script:
+    - apt-get update -qq && apt-get install -y -qq
+    - apt-get install -y -qq bart
+    - bart phantom pha.ra
+    - ./view -h
+    - ./cfl2png -x1 -u0.5 -CV pha.ra pha.png
+  artifacts:
+    paths:
+      - pha.png
+  needs: [Build]
+  dependencies:
+     - Build
