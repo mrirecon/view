@@ -27,8 +27,6 @@ static const char help_str[] = "View images.";
 
 int main(int argc, char* argv[argc])
 {
-	ui_init(&argc, &argv);
-
 	long count;
 	const char** in_files;
 
@@ -51,6 +49,9 @@ int main(int argc, char* argv[argc])
 	};
 
 	cmdline(&argc, argv, ARRAY_SIZE(args), args, help_str, ARRAY_SIZE(opts), opts);
+
+	// We initialize the UI after cmdline(), so that we can run '-h' without needing a display
+	ui_init(&argc, &argv);
 
 	struct view_s* v = NULL;
 
