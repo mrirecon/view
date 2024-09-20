@@ -27,7 +27,7 @@ static const char help_str[] = "View images.";
 
 int main(int argc, char* argv[argc])
 {
-	long count;
+	int count;
 	const char** in_files;
 
 	struct arg_s args[] = {

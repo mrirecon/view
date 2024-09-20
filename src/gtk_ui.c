@@ -12,6 +12,7 @@
 #include <cairo.h>
 #undef MIN
 #undef MAX
+#undef CLAMP
 
 #include <libgen.h>
 #include <string.h>

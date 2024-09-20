@@ -39,9 +39,9 @@ else
 endif
 
 ifeq ($(BUILDTYPE), MacOSX)
-	CFLAGS += -std=c11 -Xpreprocessor
+	CFLAGS += -std=gnu11 -Xpreprocessor
 else
-	CFLAGS += -std=c11
+	CFLAGS += -std=gnu11
 endif
 
 ifeq ($(OMP),1)
