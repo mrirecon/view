@@ -83,7 +83,7 @@ static void view_geom2(struct view_s* v);
 
 #ifdef HAS_BART_STREAM
 static void add_rt_callback(struct view_s *ptr);
-static void view_ff_realtime_position(struct view_s *v);
+static void view_ff_realtime_position(void *v);
 #endif
 
 #if 0
@@ -385,7 +385,7 @@ bool view_save_pngmovie(struct view_s* v, const char *folder)
 		char output_name[256];
 		int len = snprintf(output_name, 256, "%s/mov-%04d.png", folder, f);
 
-		if (len + 1 >= sizeof(output_name)) {
+		if (len + 1 >= (int)sizeof(output_name)) {
 
 			ui_set_msg(v, "Error: writing image file.\n");
 			goto fail;
@@ -500,7 +500,14 @@ void view_draw(struct view_s* v)
 	if (v->control->rgb_invalid) {
 
 		ui_rgbbuffer_disconnect(v);
-		v->control->rgb = realloc(v->control->rgb, v->control->rgbh * v->control->rgbstr);
+
+		void *newbuf = realloc(v->control->rgb, v->control->rgbh * v->control->rgbstr);
+
+		if (NULL == newbuf)
+			abort();
+
+		v->control->rgb = newbuf;
+
 		ui_rgbbuffer_connect(v, v->control->rgbw, v->control->rgbh, v->control->rgbstr, v->control->rgb);
 
 		(v->settings.plot ? draw_plot : draw)(v->control->rgbw, v->control->rgbh, v->control->rgbstr,
@@ -850,8 +857,9 @@ void view_toggle_plot(struct view_s* v)
 
 
 #ifdef HAS_BART_STREAM
-static void view_ff_realtime_position(struct view_s *v)
+static void view_ff_realtime_position(void *_v)
 {
+	struct view_s* v = _v;
 	struct view_control_s* control = v->control;
 
 	stream_t s = stream_lookup(control->data);
@@ -889,7 +897,7 @@ static void add_rt_callback(struct view_s *v)
 	if (0 <= fd) {
 
 		v->control->rt_callback.context = v;
-		v->control->rt_callback.f = (io_callback_function)view_ff_realtime_position;
+		v->control->rt_callback.f = view_ff_realtime_position;
 
 		ui_add_io_callback(fd, &v->control->rt_callback);
 	}

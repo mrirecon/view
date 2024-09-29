@@ -364,9 +364,9 @@ extern gboolean toogle_absolute_windowing_callback(GtkToggleToolButton* button, 
 	return FALSE;
 }
 
-static gboolean io_callback(GIOChannel *gio_channel, GIOCondition giocondition, gpointer data)
+static gboolean io_callback(GIOChannel * /* gio_channel */, GIOCondition /* giocondition */, gpointer data)
 {
-	struct io_callback_data* cb = (struct io_callback_data*)data;
+	struct io_callback_data* cb = data;
 
 	cb->f(cb->context);
 

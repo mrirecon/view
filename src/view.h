@@ -42,6 +42,7 @@ struct view_settings_s {
 };
 
 struct view_ui_params_s {
+
 	bool* selected;
 
 	double zoom;

@@ -30,7 +30,7 @@ ifeq ($(origin CC), default)
 	CC = gcc
 endif
 
-CFLAGS ?= -Wall
+CFLAGS ?= -Wall -Wextra
 
 ifeq ($(DEBUG),1)
 	CFLAGS += -Og -g

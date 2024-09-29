@@ -115,7 +115,7 @@ static void trans_complex(double rgb[3], enum color_t ctab, double a, double b, 
 	trans_phase(rgb, ctab, a, b, value);
 }
 
-static void trans_flow(double rgb[3], enum color_t ctab, double a, double b, complex double value)
+static void trans_flow(double rgb[3], enum color_t /* ctab */, double a, double b, complex double value)
 {
 	trans_magnitude(rgb, NONE, a, b, value);
 
@@ -480,7 +480,7 @@ extern void draw_grid(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbst
 
 
 extern void draw_plot(int X, int Y, int rgbstr, unsigned char (*rgbbuf)[Y][rgbstr / 4][4],
-	enum mode_t mode, enum color_t /* ctab */, float scale, float winlow, float winhigh, float phrot,
+	enum mode_t /* mode */, enum color_t /* ctab */, float scale, float winlow, float winhigh, float phrot,
 	long str, const complex float* buf)
 {
 	unsigned char bg[4] = { 255, 255, 255, 0 };
