@@ -23,11 +23,23 @@ stages:
 Build:
   stage: build
   script:
-    - make all
+    - CFLAGS="-Werror" make all
   artifacts:
     paths:
       - view
       - cfl2png
+
+Build_Analyzer:
+  stage: build
+  script:
+    - CFLAGS="-fanalyzer -Werror" DEBUG=0 make all
+  artifacts:
+    paths:
+      - view
+      - cfl2png
+    expire_in: 45 minutes
+  allow_failure: true
+
 
 Test_cfl2png:
   stage: test
