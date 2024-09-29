@@ -17,6 +17,7 @@
 #include "misc/mmio.h"
 #include "misc/opts.h"
 #include "misc/png.h"
+
 #if 0
 #include "misc/io.h"
 #else
@@ -81,7 +82,7 @@ int main(int argc, char* argv[argc])
 
 	int xdim = 0;
 	int ydim = 0;
-	float windowing[2] = {0.f, 1.f};
+	float windowing[2] = { 0.f, 1.f };
 	bool absolute_windowing = false;
 	float zoom =2.f;
 	enum flip_t flip = OO;
@@ -142,10 +143,12 @@ int main(int argc, char* argv[argc])
 
 	cmdline(&argc, argv, ARRAY_SIZE(args), args, help_str, ARRAY_SIZE(opts), opts);
 
-	if (!absolute_windowing)
+	if (!absolute_windowing) {
+
 		assert(    (windowing[0] >= 0.f)
 			&& (windowing[1] <= 1.f)
 			&& (windowing[0] < windowing[1]));
+	}
 
 	assert((0 <= xdim) && (xdim < DIMS));
 	assert((0 <= ydim) && (ydim < DIMS));
@@ -209,6 +212,7 @@ int main(int argc, char* argv[argc])
 static void unravel_index(int D, long pos[D], unsigned long flags, const long dims[D], long index)
 {
 	long ind = index;
+
 	for (int d = 0; d < D; ++d) {
 
 		if (!MD_IS_SET(flags, d))

@@ -17,6 +17,7 @@
 #include "misc/misc.h"
 #include "misc/mmio.h"
 #include "misc/opts.h"
+
 #if 0
 #include "misc/io.h"
 #else
@@ -34,7 +35,11 @@ static const char help_str[] = "View images.";
 
 int main(int argc, char* argv[argc])
 {
+#ifdef UNUSED
+	long count;
+#else
 	int count;
+#endif
 	const char** in_files;
 	int realtime = -1;
 
@@ -55,8 +60,8 @@ int main(int argc, char* argv[argc])
 		OPT_SELECT('L', enum color_t, &ctab, LIPARI, "lipari"),
 		OPT_SELECT('N', enum color_t, &ctab, NAVIA, "navia"),
 
-#if defined HAS_BART_STREAM
-		OPTL_INT(0, "real-time", &realtime, "x", "Realtime Input along axis x"),
+#ifdef HAS_BART_STREAM
+		OPTL_INT(0, "real-time", &realtime, "n", "Realtime Input along axis n"),
 #endif
 	};
 
@@ -92,8 +97,8 @@ int main(int argc, char* argv[argc])
 
 		io_reserve_input(in_files[i]);
 
-#if defined HAS_BART_STREAM
-		complex float* x = (0 <= realtime ? load_async_cfl : load_cfl)(in_files[i], DIMS, dims);
+#ifdef HAS_BART_STREAM
+		complex float* x = ((0 <= realtime) ? load_async_cfl : load_cfl)(in_files[i], DIMS, dims);
 #else
 		complex float* x = load_cfl(in_files[i], DIMS, dims);
 #endif
@@ -102,6 +107,7 @@ int main(int argc, char* argv[argc])
 		for (int i = 0; i < 3; i++)
 			pos[i] = dims[i] / 2;
 
+#ifdef HAS_BART_STREAM
 		// absolute windowing for realtime. avoids access to 'unsynced'
 		// memory when calculating the windowing
 		if (0 <= realtime) {
@@ -111,7 +117,7 @@ int main(int argc, char* argv[argc])
 			// don't set position for streamed dimension.
 			md_select_strides(DIMS, ~MD_BIT(realtime), pos, pos);
 		}
-
+#endif
 		// FIXME: we never delete them
 		struct view_s* v2 = window_new(in_files[i], pos, dims, x, absolute_windowing, ctab, realtime);
 
