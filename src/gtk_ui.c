@@ -465,10 +465,12 @@ void ui_window_new(struct view_s* v, int N, const long dims[N], const struct vie
 
 		char pname[10];
 		snprintf(pname, 10, "pos%02d", j);
+
 		v->ui->gtk_posall[j] = GTK_ADJUSTMENT(gtk_builder_get_object(builder, pname));
 		gtk_adjustment_set_upper(v->ui->gtk_posall[j], dims[j] - 1);
 
 		snprintf(pname, 10, "check%02d", j);
+
 		v->ui->gtk_checkall[j] = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, pname));
 	}
 
@@ -533,6 +535,7 @@ void ui_set_params(struct view_s* v, struct view_ui_params_s params, struct view
 			gtk_adjustment_get_page_increment(v->ui->gtk_winhigh), gtk_adjustment_get_page_size(v->ui->gtk_winhigh));
 	gtk_adjustment_configure(v->ui->gtk_winlow, img_params.winlow, 0, params.windowing_max, params.windowing_inc,
 			gtk_adjustment_get_page_increment(v->ui->gtk_winlow), gtk_adjustment_get_page_size(v->ui->gtk_winlow));
+
 	gtk_spin_button_set_digits(v->ui->gtk_button_winhigh, params.windowing_digits);
 	gtk_spin_button_set_digits(v->ui->gtk_button_winlow, params.windowing_digits);
 

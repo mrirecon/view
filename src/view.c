@@ -68,7 +68,7 @@ struct view_control_s {
 	int lastx;
 	int lasty;
 
-	//misc
+	// misc
 	bool status_bar;
 	double max;
 
@@ -646,7 +646,7 @@ static void view_set_windowing(struct view_s* v)
 
 	v->ui_params.windowing_max = max;
 	v->ui_params.windowing_inc = exp(log(10) * round(log(max) / log(10.))) * 0.001;
-	v->ui_params.windowing_digits =  MAX(3, 3 - (int)round(log(max) / log(10.)));
+	v->ui_params.windowing_digits = MAX(3, 3 - (int)round(log(max) / log(10.)));
 }
 
 void view_toggle_absolute_windowing(struct view_s* v, bool state)

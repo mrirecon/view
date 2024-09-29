@@ -4,19 +4,20 @@
  * a BSD-style license which can be found in the LICENSE file.
  */
 
-#include "num/multind.h"
 #include <complex.h>
 #include <string.h>
+
+#include "num/multind.h"
+
+#include "misc/misc.h"
+#include "misc/mmio.h"
+#include "misc/opts.h"
 
 #if defined __has_include
 #if __has_include ("misc/stream.h")
 #define HAS_BART_STREAM
 #endif
 #endif
-
-#include "misc/misc.h"
-#include "misc/mmio.h"
-#include "misc/opts.h"
 
 #if 0
 #include "misc/io.h"
@@ -35,6 +36,7 @@ static const char help_str[] = "View images.";
 
 int main(int argc, char* argv[argc])
 {
+// unused was remove in newer versionf of bart, use it detect new version
 #ifdef UNUSED
 	long count;
 #else
