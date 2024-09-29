@@ -357,7 +357,7 @@ extern gboolean toogle_absolute_windowing_callback(GtkToggleToolButton* button, 
 	if (!view_acquire(v, true))
 		return FALSE;
 
-	view_toggle_absolute_windowing(v, (TRUE == gtk_toggle_tool_button_get_active(button)) ? true : false);
+	view_toggle_absolute_windowing(v, (TRUE == gtk_toggle_tool_button_get_active(button)));
 
 	view_release(v);
 

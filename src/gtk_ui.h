@@ -1,3 +1,4 @@
+
 #include <stdbool.h>
 
 struct view_s;
@@ -7,6 +8,7 @@ struct view_settings_s;
 typedef void (*io_callback_function)(void *);
 
 struct io_callback_data {
+
 	io_callback_function f;
 	void* context;
 };

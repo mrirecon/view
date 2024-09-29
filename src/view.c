@@ -8,7 +8,8 @@
 #include <complex.h>
 #include <stdbool.h>
 #include <math.h>
-
+#include <stdatomic.h>
+#include <threads.h>
 #include <stdio.h>
 
 #include "gtk_ui.h"
@@ -19,21 +20,17 @@
 #include "misc/png.h"
 #include "misc/debug.h"
 
-#if defined __has_include
+#ifdef __has_include
 #if __has_include ("misc/stream.h")
 #define HAS_BART_STREAM
-#endif
-#endif
-#if defined HAS_BART_STREAM
 #include "misc/stream.h"
+#endif
 #endif
 
 #include "draw.h"
 
 #include "view.h"
 
-#include <stdatomic.h>
-#include <threads.h>
 
 #ifndef DIMS
 #define DIMS 16
@@ -84,8 +81,10 @@ struct view_control_s {
 static void view_window_nosync(struct view_s* v, enum mode_t mode, double winlow, double winhigh);
 static void view_geom2(struct view_s* v);
 
+#ifdef HAS_BART_STREAM
 static void add_rt_callback(struct view_s *ptr);
 static void view_ff_realtime_position(struct view_s *v);
+#endif
 
 #if 0
 static void add_text(cairo_surface_t* surface, int x, int y, int size, const char* text)
@@ -210,6 +209,7 @@ void view_refresh(struct view_s* v)
 
 		if (v->control->max < max)
 			v->control->max = max;
+
 	} else {
 
 		long size = md_calc_size(DIMS, v->control->dims);
@@ -666,6 +666,7 @@ void view_toggle_absolute_windowing(struct view_s* v, bool state)
 		v->settings.winlow = MIN(v->settings.winlow / v->control->max, 1);
 
 		v->settings.absolute_windowing = false;
+
 	} else {
 
 		v->settings.winhigh *= v->control->max;
@@ -789,11 +790,14 @@ struct view_s* window_new(const char* name, const long pos[DIMS], const long dim
 	ui_set_params(v, v->ui_params, v->settings);
 
 	v->control->realtime = realtime;
+
+#ifdef HAS_BART_STREAM
 	if (0 <= realtime) {
 
 		view_ff_realtime_position(v);
 		add_rt_callback(v);
 	}
+#endif
 
 	view_release(v);
 
@@ -845,10 +849,11 @@ void view_toggle_plot(struct view_s* v)
 }
 
 
+#ifdef HAS_BART_STREAM
 static void view_ff_realtime_position(struct view_s *v)
 {
-#if defined HAS_BART_STREAM
 	struct view_control_s* control = v->control;
+
 	stream_t s = stream_lookup(control->data);
 
 	if (NULL == s)
@@ -870,12 +875,10 @@ static void view_ff_realtime_position(struct view_s *v)
 		control->rgb_invalid = true;
 		view_refresh(v);
 	}
-#endif
 }
 
 static void add_rt_callback(struct view_s *v)
 {
-#if defined HAS_BART_STREAM
 	stream_t s = stream_lookup(v->control->data);
 
 	if (NULL == s)
@@ -887,7 +890,9 @@ static void add_rt_callback(struct view_s *v)
 
 		v->control->rt_callback.context = v;
 		v->control->rt_callback.f = (io_callback_function)view_ff_realtime_position;
+
 		ui_add_io_callback(fd, &v->control->rt_callback);
 	}
-#endif
 }
+#endif
+
