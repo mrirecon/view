@@ -26,7 +26,7 @@ sudo apt-get install libgtk-3-dev
 
 
 
-Compile with make after setting the TOOLBOX_PATH
+Compile with make after setting the BART_TOOLBOX_PATH
 environment variable to the directory where BART
 is installed.
 
