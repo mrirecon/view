@@ -1,4 +1,4 @@
-
+**This project has moved to: https://codeberg.org/IBI-TUGraz/view**
 
 Small image viewer for multi-dimensional files. Compiles
 on Linux and Mac OS X. It needs some libraries from
